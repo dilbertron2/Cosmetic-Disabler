@@ -1,4 +1,5 @@
 import os
+from parser import find_cosmetics
 import vpk
 import shutil
 from pathlib import Path
@@ -66,20 +67,34 @@ def main_loop(): # Give the user a choice on what to do
     if user_input == "":
         main_loop()
     else:
-        if user_input[0] == "D":
-            get_user_hat()
-            main_loop()
-        elif user_input[0] == "C":
-            create_vpk()
-            main_loop()
-        elif user_input[0] == "Q":
-            quit()
-        elif user_input[0] == "E":
-            print("WIP")
-            #code re-enabling cosmetics
-        elif user_input[0] == "L":
-            print("WIP")
-            #code listing all disabled cosmetics
+        while True:
+            if user_input[0] == "D":#disable cosmetic
+                get_user_hat()
+                main_loop()
+                break
+            elif user_input[0] == "C":#create vpk
+                create_vpk()
+                main_loop()
+                break
+            elif user_input[0] == "Q":#quit
+                quit()
+            elif user_input[0] == "E":#enable cosmetic
+                main_loop()
+                print("WIP")
+                break
+            elif user_input[0] == "L":#list cosmetics
+                print("WIP")
+                main_loop()
+                break
+            elif user_input[0] == "R":
+                # TESTING
+                find_cosmetics(tf2_dir + r"\tf\scripts\items\items_game.txt")
+                main_loop()
+                break
+            else:
+                main_loop()
+                break
+
 
 custom_tf2_file = program_data / "data" # Check for a custom saved TF2 location and run accordingly.
 custom_tf2_location = ""
@@ -90,9 +105,20 @@ if custom_tf2_file.exists():
 
         print("TF2 Location detected as " + custom_tf2_location)
         print("Is this correct? Y/N")
-        user_input = input("> ").upper()
-        if user_input == "N" or user_input == "NO":
-            get_custom_dir()
+        while True:
+            user_input = input("> ").strip().upper()
+
+            if user_input in ("N", "NO"):
+                get_custom_dir()
+                break
+
+            elif user_input in ("Y", "YES"):
+                tf2_dir = tf2_default_dir
+                break
+
+            else:
+                print("Invalid input. Please enter Y/YES or N/NO.")
+
 
 elif not custom_tf2_file.exists():
     if os.path.exists(tf2_default_dir):
@@ -101,6 +127,9 @@ elif not custom_tf2_file.exists():
         user_input = input("> ").upper()
         if user_input == "N" or user_input == "NO":
             get_custom_dir()
+
+        elif user_input == "Y" or user_input == "YES":
+            tf2_dir = tf2_default_dir
 
     elif not os.path.exists(tf2_default_dir):
         get_custom_dir()

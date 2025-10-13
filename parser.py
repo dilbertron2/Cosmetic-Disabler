@@ -1,12 +1,13 @@
 from idlelib.run import uninstall_recursionlimit_wrappers
-
-items_game_path_test = r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2\tf\scripts\items\items_game.txt"
-
 import vdf
 import csv
 
+tf_classes = [
+    "scout", "soldier", "pyro", "demo", "heavy",
+    "engineer", "medic", "sniper", "spy"
+]
 
-def find_cosmetics(file_path=items_game_path_test):
+def find_cosmetics(file_path):
     cosmetics = []
     with open(file_path, encoding="utf-8") as file:
         data = vdf.load(file)
@@ -17,6 +18,16 @@ def find_cosmetics(file_path=items_game_path_test):
             prefab = item.get("prefab", "").lower()
             slot = item.get("item_slot", "").lower()
             modelstyles = ""
+            valid_classes = []
+
+            #Get "used_by_classes" and store found classes
+            used_by_classes = item.get("used_by_classes")
+            if isinstance(used_by_classes, dict):
+                for tf_class in used_by_classes:
+                    if tf_class == "demoman":
+                        valid_classes.append("demo")
+                    else:
+                        valid_classes.append(tf_class)
 
             # Detect cosmetics by prefab or slot
             cosmetic_keywords = [
@@ -34,22 +45,39 @@ def find_cosmetics(file_path=items_game_path_test):
             if isinstance(mp, dict):
                 basename = mp.get("basename")
 
+                if not valid_classes:
+                    valid_classes = tf_classes
+
                 if basename == "" or basename is None:
-                    basename = {}
+                    #basename = {}
+                    basename = []
                     for TF_class, path in mp.items():
-                        basename[TF_class] = path
+                        #basename[TF_class] = path
+                        basename.append(path)
+                elif basename != "" or basename is not None:
+                    basename = [ basename.replace("%s", cls) for cls in valid_classes ]
+
+
+
+
             # Grab model_player if nested basename not found
             elif not isinstance(mp, dict):
                 basename = item.get("model_player", None)
-                #mp = item.get("model_player")
-                #if isinstance(mp, dict):
+                if isinstance(basename, str):
+                    #if "%s" in basename:
+                       # basename = [
+                            #basename.replace("%s", cls) for cls in valid_classes
+                        #]
+                    basename = [basename]
 
             visuals = item.get("visuals")
 
             if isinstance(visuals, dict):
                 styles = visuals.get("styles")
                 if isinstance(styles, dict):
-                    modelstyles = []
+                    #basename = []
+                    if basename is None:
+                        basename = []
                     for _, style_data in styles.items():
                         if not isinstance(style_data, dict):
                             continue
@@ -58,34 +86,41 @@ def find_cosmetics(file_path=items_game_path_test):
                         if "model_player_per_class" in style_data:
                             for _, path in style_data["model_player_per_class"].items():
                                 if isinstance(path, str) and path.endswith(".mdl"):
-                                    modelstyles.append(path)
+
+                                    if not valid_classes:
+                                        valid_classes = tf_classes
+
+                                    path = [path.replace("%s", cls) for cls in valid_classes]
+                                    #modelstyles.append(path)
+                                    basename.extend(path)
                         elif "model_player" in style_data:
                             path = style_data["model_player"]
                             if isinstance(path, str) and path.endswith(".mdl"):
-                                modelstyles.append(path)
+                                basename.append(path)
 
 
             #if is_cosmetic and item.get("hidden") != "1" and basename != "":
             if is_cosmetic and item.get("hidden") != "1":
                 if prefab not in ("base_cosmetic_case", "base_keyless_cosmetic_case") and name not in ("Glitched Circuit Board", "Damaged Capacitor", "Web Easteregg Medal", "Tournament Medal (Armory)"):
                    #if basename == "" or basename is None:
-                        cosmetics.append({
- #                           "id": item_id,
-                            "name": name,
-                            "basename": basename,
-                            "modelstyles": modelstyles,
-                        })
+                   basename = list(dict.fromkeys(basename))
+                   cosmetics.append({
+                       # "id": item_id,
+                       "name": name.lower(),
+                       "basename": basename,
+                       # "modelstyles": modelstyles,
+                       #"validclasses": valid_classes
+                   })
 
     print(len(cosmetics))
 
     with open("tf2_cosmetics.csv", "w", newline='', encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["id", "name", "basename", "modelstyles"])
+        #writer.writerow(["name", "basename", "modelstyles", "validclasses"])
+        writer.writerow(["name", "basename", "validclasses"])
         for c in cosmetics:
-            writer.writerow([c["name"] or "", c["basename"] or "", c["modelstyles"] or ""])
+            #writer.writerow([c["name"] or "", c["basename"] or "", c["modelstyles"] or "", c["validclasses"] or ""])
+            writer.writerow([c["name"] or "", c["basename"] or ""])
 
-
-
-
-find_cosmetics()
-
+    print("COSMETICS RAN SUCCESSFULLY")
+    return cosmetics
