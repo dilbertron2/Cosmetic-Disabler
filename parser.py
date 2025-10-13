@@ -58,8 +58,6 @@ def find_cosmetics(file_path):
                     basename = [ basename.replace("%s", cls) for cls in valid_classes ]
 
 
-
-
             # Grab model_player if nested basename not found
             elif not isinstance(mp, dict):
                 basename = item.get("model_player", None)
@@ -107,7 +105,7 @@ def find_cosmetics(file_path):
                    cosmetics.append({
                        # "id": item_id,
                        "name": name.lower(),
-                       "basename": basename,
+                       "paths": basename,
                        # "modelstyles": modelstyles,
                        #"validclasses": valid_classes
                    })
@@ -117,10 +115,10 @@ def find_cosmetics(file_path):
     with open("tf2_cosmetics.csv", "w", newline='', encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         #writer.writerow(["name", "basename", "modelstyles", "validclasses"])
-        writer.writerow(["name", "basename", "validclasses"])
+        writer.writerow(["name", "paths", "validclasses"])
         for c in cosmetics:
             #writer.writerow([c["name"] or "", c["basename"] or "", c["modelstyles"] or "", c["validclasses"] or ""])
-            writer.writerow([c["name"] or "", c["basename"] or ""])
+            writer.writerow([c["name"] or "", c["paths"] or ""])
 
     print("COSMETICS RAN SUCCESSFULLY")
     return cosmetics
