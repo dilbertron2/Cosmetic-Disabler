@@ -110,15 +110,13 @@ def find_cosmetics(file_path):
                        #"validclasses": valid_classes
                    })
 
-    print(len(cosmetics))
 
-    with open("tf2_cosmetics.csv", "w", newline='', encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-        #writer.writerow(["name", "basename", "modelstyles", "validclasses"])
-        writer.writerow(["name", "paths", "validclasses"])
-        for c in cosmetics:
-            #writer.writerow([c["name"] or "", c["basename"] or "", c["modelstyles"] or "", c["validclasses"] or ""])
-            writer.writerow([c["name"] or "", c["paths"] or ""])
+    # with open("tf2_cosmetics.csv", "w", newline='', encoding="utf-8") as csvfile:
+    #     writer = csv.writer(csvfile)
+    #     #writer.writerow(["name", "basename", "modelstyles", "validclasses"])
+    #     writer.writerow(["name", "paths", "validclasses"])
+    #     for c in cosmetics:
+    #         #writer.writerow([c["name"] or "", c["basename"] or "", c["modelstyles"] or "", c["validclasses"] or ""])
+    #         writer.writerow([c["name"] or "", c["paths"] or ""])
 
-    print("COSMETICS RAN SUCCESSFULLY")
     return cosmetics

@@ -7,11 +7,11 @@ from pathlib import Path
 
 tf2_default_dir = r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2"
 tf2_dir = r""
-paths_txt = "paths.txt"
 cosmetic_names = []
 cosmetic_paths = []
 mod_folder = Path().absolute() / "Cosmetic-Mod-Staging"
 program_data = Path().absolute() / "Cosmetic Disabler Data"
+replacement_folder = Path().absolute() / "Replacement Files"
 
 if not mod_folder.exists():
     mod_folder.mkdir()
@@ -37,10 +37,6 @@ def get_user_hat():
     similar_cosmetics = []
     found_exact_match = False
     user_hat_name = input("> ").strip().lower()
-    # with open(paths_txt) as file:
-    #     for line in file:
-    #         if user_hat_name in line:
-    #             cosmetic_paths.append(line.replace("\n",""))
 
     cosmetics = find_cosmetics(tf2_dir + r"\tf\scripts\items\items_game.txt")
 
@@ -58,7 +54,6 @@ def get_user_hat():
             current_cosmetic_paths = cosmetic.get("paths")
             if current_cosmetic_paths:
                 for path in current_cosmetic_paths:
-                    print(cosmetic_paths)
                     if path not in cosmetic_paths:
                         cosmetic_paths.append(path)
 
@@ -74,18 +69,53 @@ def create_vpk(): # Create the final VPK file for use in TF2, as well as saving 
     cosmetic_paths_final = []
 
     for path in cosmetic_paths:
+        print(path)
         main, ext = os.path.splitext(path)
-        new_path = main + ".dx80.vtx"
-        new_path2 = main + ".dx90.vtx"
+        new_path = main + ".vtx"
         cosmetic_paths_final.append(new_path)
-        cosmetic_paths_final.append(new_path2)
 
-    for cosmetic in cosmetic_paths_final:
-        cosmetic_file = Path(mod_folder) / cosmetic
-        if not cosmetic_file.exists():
-            cosmetic_file.parent.mkdir(exist_ok=True, parents=True)
-        with open(cosmetic_file, 'w') as file:
-            file.write("")
+        if any(sub in path for sub in ("sniper", "soldier", "engineer", "scout")):
+            new_path = main + ".mdl"
+            cosmetic_paths_final.append(new_path)
+            new_path = main + ".phy"
+            cosmetic_paths_final.append(new_path)
+            new_path = main + ".vvd"
+            cosmetic_paths_final.append(new_path)
+
+    for cosmetic_file in cosmetic_paths_final:
+        cosmetic_folder = (Path(mod_folder) / cosmetic_file).parent
+
+        if not cosmetic_folder.exists():
+            cosmetic_folder.mkdir(exist_ok=True, parents=True)
+
+        main, ext = os.path.splitext(cosmetic_file)
+
+        tf_class = next((sub for sub in ("sniper", "soldier", "engineer", "scout") if sub in cosmetic_file), None)
+
+        if isinstance(tf_class, str): #Check if cosmetic belongs to either sniper, soldier, engineer or scout.
+            if ext == ".vtx":
+                shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".dx80.vtx")
+                shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".dx90.vtx")
+                shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".sw.vtx")
+
+            elif ext == ".mdl":
+                shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".mdl")
+
+            elif ext == ".phy" and tf_class != "engineer":
+                shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".phy")
+
+            elif ext == ".vvd":
+                shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".vvd")
+
+        elif not isinstance(tf_class, str) and ext == ".vtx": #If cosmetic doesn't belong to any of the above classes, execute this instead.
+            with open(str(mod_folder.absolute()) + "/" + main + ".dx80.vtx", 'w') as file:
+                file.write("")
+
+            with open(str(mod_folder.absolute()) + "/" + main + ".dx90.vtx", 'w') as file:
+                file.write("")
+
+            with open(str(mod_folder.absolute()) + "/" + main + ".sw.vtx", 'w') as file:
+                file.write("")
 
     new_vpk = vpk.new(str(mod_folder))
     new_vpk.save("Custom-Cosmetic-Disabler.vpk")
@@ -139,6 +169,7 @@ def main_loop(): # Give the user a choice on what to do
     print("(L)ist disabled Cosmetics")
     print("(C)reate VPK file")
     print("(Q)uit")
+    print("NOTICE: YOU MUST CREATE VPK FILE TO SAVE CHANGES TO DISABLED COSMETICS")
     user_input = input("> ").upper()
     if user_input == "":
         main_loop()
