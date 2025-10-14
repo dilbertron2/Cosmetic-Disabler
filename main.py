@@ -1,16 +1,17 @@
 import os
 from parser import find_cosmetics
 import vpk
+import json
 import shutil
+import atexit
 from pathlib import Path
-
 
 tf2_default_dir = r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2"
 tf2_dir = r""
-cosmetic_names = []
-cosmetic_paths = []
+target_cosmetics = []
 mod_folder = Path().absolute() / "Cosmetic-Mod-Staging"
 program_data = Path().absolute() / "Cosmetic Disabler Data"
+cosmetic_data = program_data / "data2"
 replacement_folder = Path().absolute() / "Replacement Files"
 
 if not mod_folder.exists():
@@ -18,6 +19,16 @@ if not mod_folder.exists():
 
 if not program_data.exists():
     program_data.mkdir()
+
+def delete_vpk_folder():
+    if mod_folder.exists():
+        shutil.rmtree(mod_folder)
+
+atexit.register(delete_vpk_folder)
+
+def save_cosmetics():
+    with open(cosmetic_data, "w") as file:
+        json.dump(target_cosmetics, file)
 
 def get_custom_dir(): # Get custom TF2 location as provided by user.
     print(r"Enter the full path of your TF2 installation. (..steamapps\common\Team Fortress 2)")
@@ -45,17 +56,13 @@ def get_user_hat():
 
         if cosmetic_name and user_hat_name in cosmetic_name and user_hat_name != cosmetic_name:
             similar_cosmetics.append(cosmetic_name)
-
+        print(cosmetic_name)
         if cosmetic_name and cosmetic_name == user_hat_name:
-            if cosmetic_name not in cosmetic_names:
-                cosmetic_names.append(cosmetic_name)
+            if cosmetic not in target_cosmetics:
+                target_cosmetics.append(cosmetic)
+                print(target_cosmetics)
 
             found_exact_match = True
-            current_cosmetic_paths = cosmetic.get("paths")
-            if current_cosmetic_paths:
-                for path in current_cosmetic_paths:
-                    if path not in cosmetic_paths:
-                        cosmetic_paths.append(path)
 
     if similar_cosmetics and not found_exact_match:
         print("Cosmetic not found. Did you mean one of the following?")
@@ -68,31 +75,36 @@ def get_user_hat():
 def create_vpk(): # Create the final VPK file for use in TF2, as well as saving all affected cosmetic paths to a file.
     cosmetic_paths_final = []
 
-    for path in cosmetic_paths:
-        print(path)
-        main, ext = os.path.splitext(path)
-        new_path = main + ".vtx"
-        cosmetic_paths_final.append(new_path)
-
-        if any(sub in path for sub in ("sniper", "soldier", "engineer", "scout")):
-            new_path = main + ".mdl"
-            cosmetic_paths_final.append(new_path)
-            new_path = main + ".phy"
-            cosmetic_paths_final.append(new_path)
-            new_path = main + ".vvd"
+    for cosmetic in target_cosmetics:
+        paths = cosmetic.get("paths")
+        is_phy_bodygroup = cosmetic.get("phy_bodygroup")
+        for path in paths:
+            main, ext = os.path.splitext(path)
+            new_path = main + ".vtx"
             cosmetic_paths_final.append(new_path)
 
-    for cosmetic_file in cosmetic_paths_final:
-        cosmetic_folder = (Path(mod_folder) / cosmetic_file).parent
+            if any(sub in path for sub in ("sniper", "soldier", "engineer", "scout")):
+                new_path = main + ".mdl"
+                cosmetic_paths_final.append(new_path)
+
+                if is_phy_bodygroup:
+                    new_path = main + ".phy"
+                    cosmetic_paths_final.append(new_path)
+
+                new_path = main + ".vvd"
+                cosmetic_paths_final.append(new_path)
+
+    for path in cosmetic_paths_final:
+        cosmetic_folder = (Path(mod_folder) / path).parent
 
         if not cosmetic_folder.exists():
             cosmetic_folder.mkdir(exist_ok=True, parents=True)
 
-        main, ext = os.path.splitext(cosmetic_file)
+        main, ext = os.path.splitext(path)
 
-        tf_class = next((sub for sub in ("sniper", "soldier", "engineer", "scout") if sub in cosmetic_file), None)
+        tf_class = next((sub for sub in ("sniper", "soldier", "engineer", "scout") if sub in path), None)
 
-        if isinstance(tf_class, str): #Check if cosmetic belongs to either sniper, soldier, engineer or scout.
+        if isinstance(tf_class, str):  # Check if cosmetic belongs to either sniper, soldier, engineer or scout.
             if ext == ".vtx":
                 shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".dx80.vtx")
                 shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".dx90.vtx")
@@ -107,7 +119,8 @@ def create_vpk(): # Create the final VPK file for use in TF2, as well as saving 
             elif ext == ".vvd":
                 shutil.copy(replacement_folder / (tf_class + ext), (str(mod_folder.absolute()) + "/" + main) + ".vvd")
 
-        elif not isinstance(tf_class, str) and ext == ".vtx": #If cosmetic doesn't belong to any of the above classes, execute this instead.
+        elif not isinstance(tf_class,
+                            str) and ext == ".vtx":  # If cosmetic doesn't belong to any of the above classes, execute this instead.
             with open(str(mod_folder.absolute()) + "/" + main + ".dx80.vtx", 'w') as file:
                 file.write("")
 
@@ -119,58 +132,47 @@ def create_vpk(): # Create the final VPK file for use in TF2, as well as saving 
 
     new_vpk = vpk.new(str(mod_folder))
     new_vpk.save("Custom-Cosmetic-Disabler.vpk")
-    models_folder = mod_folder / "models"
-    if models_folder.exists():
-        shutil.rmtree(models_folder)
+    delete_vpk_folder()
 
-    with open(disabled_cosmetics_file, 'w') as file:
-        for filepath in cosmetic_paths:
-            file.write(filepath + "\n")
-
-    with open(disabled_cosmetics_names_file, "w") as file:
-        for name in cosmetic_names:
-            file.write(name + "\n")
-
+    save_cosmetics()
 
 def enable_cosmetic():
     print("Disabled Cosmetics:")
     print()
-    for name in cosmetic_names:
-        print(f"* {name}")
+    for cosmetic in target_cosmetics:
+        cosmetic_name = cosmetic.get("name")
+        if cosmetic_name:
+            print(f"* {cosmetic_name}")
     print()
-    print(f"{len(cosmetic_names)} cosmetics disabled.")
+    print(f"{len(target_cosmetics)} cosmetics disabled.")
+    if len(target_cosmetics) == 0:
+        return
     print("Which cosmetic do you want to enable?")
 
     target_cosmetic_name = input("> ").strip().lower()
-    cosmetics = find_cosmetics(tf2_dir + r"\tf\scripts\items\items_game.txt")
-
-    for cosmetic in cosmetics: # Find target cosmetic
+    for cosmetic in target_cosmetics:
         cosmetic_name = cosmetic.get("name")
 
         if cosmetic_name == target_cosmetic_name:
-            disabled_cosmetic_paths = cosmetic.get("paths")
-
-            for path in disabled_cosmetic_paths:
-                if path in cosmetic_paths:
-                    cosmetic_paths.remove(path)
-            cosmetic_names.remove(target_cosmetic_name)
-
+            target_cosmetics.remove(cosmetic)
 
 
 def list_disabled_cosmetics():
-    for name in cosmetic_names:
-        print(name)
+    for cosmetic in target_cosmetics:
+        cosmetic_name = cosmetic.get("name")
+        print(f"* {cosmetic_name}")
     print()
-    print(f"{len(cosmetic_names)} cosmetics disabled.")
+    print(f"{len(target_cosmetics)} cosmetics disabled.")
 
 def main_loop(): # Give the user a choice on what to do
+    print("(C)reate VPK file")
     print("(D)isable a Cosmetic")
     print("(E)nable a Cosmetic")
     print("(L)ist disabled Cosmetics")
-    print("(C)reate VPK file")
+    print("(S)ave disabled Cosmetics")
     print("(Q)uit")
-    print("NOTICE: YOU MUST CREATE VPK FILE TO SAVE CHANGES TO DISABLED COSMETICS")
-    user_input = input("> ").upper()
+    print("NOTICE: Creating a VPK automatically saves your disabled Cosmetics!")
+    user_input = input("> ").strip().upper()
     if user_input == "":
         main_loop()
     else:
@@ -191,6 +193,10 @@ def main_loop(): # Give the user a choice on what to do
                 break
             elif user_input[0] == "L":#list disabled cosmetics
                 list_disabled_cosmetics()
+                main_loop()
+                break
+            elif user_input[0] == "S":
+                save_cosmetics()
                 main_loop()
                 break
             else:
@@ -241,19 +247,9 @@ elif not custom_tf2_file.exists():
     elif not os.path.exists(tf2_default_dir):
         get_custom_dir()
 
-disabled_cosmetics_file = program_data / "data2" # Check for already disabled cosmetics and load path.
-if disabled_cosmetics_file.exists():
-    with open(str(disabled_cosmetics_file), "r") as file:
-        for line in file:
-            cosmetic_paths.append(line.replace("\n",""))
-    print(cosmetic_paths)
-
-disabled_cosmetics_names_file = program_data / "data3" # Check for already disabled cosmetics and load name
-if disabled_cosmetics_names_file.exists():
-    with open(str(disabled_cosmetics_names_file), "r") as file:
-        for line in file:
-            cosmetic_names.append(line.replace("\n",""))
-
+if cosmetic_data.exists():
+    with open(cosmetic_data, "r") as file:
+        target_cosmetics = json.load(file)
 
 print("Cosmetic Disabler Running.. What would you like to do?")
 main_loop()

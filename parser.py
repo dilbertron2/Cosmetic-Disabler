@@ -18,6 +18,7 @@ def find_cosmetics(file_path):
             prefab = item.get("prefab", "").lower()
             slot = item.get("item_slot", "").lower()
             modelstyles = ""
+            phy_bodygroup = False
             valid_classes = []
 
             #Get "used_by_classes" and store found classes
@@ -71,7 +72,7 @@ def find_cosmetics(file_path):
             visuals = item.get("visuals")
 
             if isinstance(visuals, dict):
-                styles = visuals.get("styles")
+                styles = visuals.get("styles") # Parse cosmetic styles
                 if isinstance(styles, dict):
                     #basename = []
                     if basename is None:
@@ -96,6 +97,13 @@ def find_cosmetics(file_path):
                             if isinstance(path, str) and path.endswith(".mdl"):
                                 basename.append(path)
 
+                target_bodygroups = visuals.get("player_bodygroups") # Parse bodygroups
+                if isinstance(target_bodygroups, dict):
+                    for bodygroupname, value in target_bodygroups.items():
+                        if bodygroupname in ("hat", "headphones"):
+                            phy_bodygroup = True
+                            break
+
 
             #if is_cosmetic and item.get("hidden") != "1" and basename != "":
             if is_cosmetic and item.get("hidden") != "1":
@@ -103,10 +111,11 @@ def find_cosmetics(file_path):
                    #if basename == "" or basename is None:
                    basename = list(dict.fromkeys(basename))
                    cosmetics.append({
-                       # "id": item_id,
+                       #"id": item_id,
                        "name": name.lower(),
                        "paths": basename,
-                       # "modelstyles": modelstyles,
+                       "phy_bodygroup": phy_bodygroup
+                       #"modelstyles": modelstyles,
                        #"validclasses": valid_classes
                    })
 
