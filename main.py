@@ -56,7 +56,6 @@ def get_user_hat():
 
         if cosmetic_name and user_hat_name in cosmetic_name and user_hat_name != cosmetic_name:
             similar_cosmetics.append(cosmetic_name)
-        print(cosmetic_name)
         if cosmetic_name and cosmetic_name == user_hat_name:
             if cosmetic not in target_cosmetics:
                 target_cosmetics.append(cosmetic)
