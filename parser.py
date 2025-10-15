@@ -13,7 +13,7 @@ def find_cosmetics(file_path):
         data = vdf.load(file)
         items = data["items_game"]["items"]
 
-        for item_id, item in items.items():
+        for item_id, item in items.items(): # Iterate through every single item in items_game.txt
             name = item.get("name")
             prefab = item.get("prefab", "").lower()
             slot = item.get("item_slot", "").lower()
@@ -21,8 +21,8 @@ def find_cosmetics(file_path):
             phy_bodygroup = False
             valid_classes = []
 
-            #Get "used_by_classes" and store found classes
-            used_by_classes = item.get("used_by_classes")
+
+            used_by_classes = item.get("used_by_classes") # Get "used_by_classes" and store found classes
             if isinstance(used_by_classes, dict):
                 for tf_class in used_by_classes:
                     if tf_class == "demoman":
@@ -30,8 +30,8 @@ def find_cosmetics(file_path):
                     else:
                         valid_classes.append(tf_class)
 
-            # Detect cosmetics by prefab or slot
-            cosmetic_keywords = [
+
+            cosmetic_keywords = [ # Detect cosmetics by prefab or slot
                 "hat", "misc", "paintable", "base_hat", "base_misc",
                 "cosmetic", "tournament_medal", "tf_wearable"
             ]
@@ -40,10 +40,10 @@ def find_cosmetics(file_path):
                     or slot in ("head", "misc", "body", "feet")
             )
 
-            # Grab nested basename if available
+
             basename = None
             mp = item.get("model_player_per_class")
-            if isinstance(mp, dict):
+            if isinstance(mp, dict): # Grab nested basename if available
                 basename = mp.get("basename")
 
                 if not valid_classes:
@@ -55,12 +55,12 @@ def find_cosmetics(file_path):
                     for TF_class, path in mp.items():
                         #basename[TF_class] = path
                         basename.append(path)
-                elif basename != "" or basename is not None:
+                elif basename != "" or basename is not None: # Replace %s filepath placeholder with relevant classes
                     basename = [ basename.replace("%s", cls) for cls in valid_classes ]
 
 
-            # Grab model_player if nested basename not found
-            elif not isinstance(mp, dict):
+
+            elif not isinstance(mp, dict): # Grab model_player if nested basename not found
                 basename = item.get("model_player", None)
                 if isinstance(basename, str):
                     #if "%s" in basename:
@@ -72,7 +72,7 @@ def find_cosmetics(file_path):
             visuals = item.get("visuals")
 
             if isinstance(visuals, dict):
-                styles = visuals.get("styles") # Parse cosmetic styles
+                styles = visuals.get("styles") # Get cosmetic styles
                 if isinstance(styles, dict):
                     #basename = []
                     if basename is None:
@@ -81,8 +81,8 @@ def find_cosmetics(file_path):
                         if not isinstance(style_data, dict):
                             continue
 
-                        # Check both "model_player_per_class" and "model_player"
-                        if "model_player_per_class" in style_data:
+
+                        if "model_player_per_class" in style_data: # Check "model_player_per_class"
                             for _, path in style_data["model_player_per_class"].items():
                                 if isinstance(path, str) and path.endswith(".mdl"):
 
@@ -92,24 +92,23 @@ def find_cosmetics(file_path):
                                     path = [path.replace("%s", cls) for cls in valid_classes]
                                     #modelstyles.append(path)
                                     basename.extend(path)
-                        elif "model_player" in style_data:
+                        elif "model_player" in style_data: # Check "model_player" if "model_player_per_class" not found
                             path = style_data["model_player"]
                             if isinstance(path, str) and path.endswith(".mdl"):
                                 basename.append(path)
 
-                target_bodygroups = visuals.get("player_bodygroups") # Parse bodygroups
+                target_bodygroups = visuals.get("player_bodygroups") # Get bodygroups
                 if isinstance(target_bodygroups, dict):
                     for bodygroupname, value in target_bodygroups.items():
-                        if bodygroupname in ("hat", "headphones"):
+                        if bodygroupname in ("hat", "headphones"): # Check if bodygroups affect default headgear
                             phy_bodygroup = True
                             break
 
 
-            #if is_cosmetic and item.get("hidden") != "1" and basename != "":
             if is_cosmetic and item.get("hidden") != "1":
                 if prefab not in ("base_cosmetic_case", "base_keyless_cosmetic_case") and name not in ("Glitched Circuit Board", "Damaged Capacitor", "Web Easteregg Medal", "Tournament Medal (Armory)"):
                    #if basename == "" or basename is None:
-                   basename = list(dict.fromkeys(basename))
+                   basename = list(dict.fromkeys(basename)) # Remove duplicate filepaths
                    cosmetics.append({
                        #"id": item_id,
                        "name": name.lower(),
@@ -118,14 +117,5 @@ def find_cosmetics(file_path):
                        #"modelstyles": modelstyles,
                        #"validclasses": valid_classes
                    })
-
-
-    # with open("tf2_cosmetics.csv", "w", newline='', encoding="utf-8") as csvfile:
-    #     writer = csv.writer(csvfile)
-    #     #writer.writerow(["name", "basename", "modelstyles", "validclasses"])
-    #     writer.writerow(["name", "paths", "validclasses"])
-    #     for c in cosmetics:
-    #         #writer.writerow([c["name"] or "", c["basename"] or "", c["modelstyles"] or "", c["validclasses"] or ""])
-    #         writer.writerow([c["name"] or "", c["paths"] or ""])
 
     return cosmetics
