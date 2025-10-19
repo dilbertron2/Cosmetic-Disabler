@@ -290,6 +290,9 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                     elif replacement_model_type == "hat" or replacement_model_type == "headphones":
                         if "hat" in bodygroups and "headphones" in bodygroups:
                             replacement_model_type = "hat_headphones"
+                    elif replacement_model_type == "head" or replacement_model_type == "whole_head":
+                        if "whole_head" in bodygroups and "headphones" in bodygroups:
+                            replacement_model_type = "hat_headphones"
 
                 elif replacement_model_type == "hat":
                     if "hat" in bodygroups and ("head" in bodygroups or "whole_head" in bodygroups):
