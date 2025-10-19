@@ -1,13 +1,13 @@
-# // LICENSE FOR VPK LIBRARY //
+# // LICENSE FOR VALVE_PARSERS LIBRARY //
 
-# Copyright (c) 2015 Rossen Georgiev <rossen@rgp.io>
+# Copyright (c) 2025 valve-parsers contributors
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-# of the Software, and to permit persons to whom the Software is furnished to do
-# so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 
 # // LICENSE FOR TKINTER LIBRARY //
 
@@ -51,24 +52,32 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-import os
 import sys
 import ctypes
+from json import JSONDecodeError
 from parser import find_cosmetics
-import vpk
+from valve_parsers import VPKFile
 import json
 import shutil
 import atexit
 from pathlib import Path
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, Menu
 
 # Variables & paths
-tf2_default_dir = r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2"
-tf2_dir = ""
+# items_game_path = r"tf\scripts\items\items_game.txt"
+# tf2_default_dir = r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2"
+# tf2_dir = ""
+items_game_path = Path(r"tf\scripts\items\items_game.txt")
+tf2_default_dir = Path(r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2")
+tf2_dir = Path("")
+tf2_misc_dir = Path(r"tf\tf2_misc_dir.vpk")
 target_cosmetics = []
 all_cosmetics = []
 all_names = []
+bodygroups_to_replace = {"hat", "headphones", "hands", "shoes", "shoes_socks", "head", "whole_head", "backpack", "dogtags", "grenades", "bullets"}
+bodygroups_to_always_replace = {"hands", "shoes_socks", "shoes", "head", "whole_head", "backpack", "grenades", "bullets"}
+tf_classes = {"sniper", "soldier", "engineer", "scout", "demo", "heavy", "medic", "pyro", "spy"}
 
 mod_folder = Path().absolute() / "Cosmetic-Mod-Staging"
 program_data = Path().absolute() / "Cosmetic Disabler Data"
@@ -81,9 +90,6 @@ for folder in (mod_folder, program_data):
 if not replacement_folder.exists():
     messagebox.showerror("Missing Folder", f"Replacement model files not found.\nFolder missing at: {replacement_folder}\nThis Software will not work. Please re-download this program from Github or move 'Replacement Files' to the correct location.")
 
-
-# Functions
-
 if sys.platform == "win32":  # Force custom app ID to ensure program icon usage
     app_id = u"TF2CosmeticDisabler.app"
     try:
@@ -91,13 +97,15 @@ if sys.platform == "win32":  # Force custom app ID to ensure program icon usage
     except Exception:
         pass
 
+# Functions
 
 def resource_path(relative_path): # Check whether program has been compiled with pyinstaller or is simply running from a straight .py file
     try:
-        base_path = sys._MEIPASS
+        base_path = Path(sys._MEIPASS)
     except AttributeError:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+        #base_path = os.path.abspath(".")
+        base_path = Path(".").resolve()
+    return base_path / relative_path
 
 def delete_vpk_folder():
     if mod_folder.exists():
@@ -122,113 +130,207 @@ def on_close(): # Prompt save when user wants to quit program
 
 
 def get_custom_dir(): # Prompt user for custom TF2 directory
-    global tf2_dir
-    folder = filedialog.askdirectory(title="Select Team Fortress 2 folder")
-    if not folder:
+    global tf2_dir, tf2_misc_dir
+    user_folder = Path(filedialog.askdirectory(title="Select Team Fortress 2 folder"))
+
+    if not user_folder:
         return
-    if os.path.exists(os.path.join(folder, "tf", "scripts", "items", "items_game.txt")):
-        tf2_dir = folder
-        with open(program_data / "data", "w") as f:
-            f.write(tf2_dir)
+    if (user_folder / items_game_path).exists():
+        tf2_dir = user_folder
+
+        if (tf2_dir / tf2_misc_dir).exists():
+            tf2_misc_dir = str(tf2_dir / tf2_misc_dir)
+
+        with open(program_data / "data", "w") as file:
+            tf2_dir_str = str(tf2_dir)
+            file.write(tf2_dir_str)
         messagebox.showinfo("TF2 Folder Set", f"TF2 directory set to:\n{tf2_dir}")
-        tf2_dir_label.config(text=tf2_dir)
+        tf2_dir_label.config(text=tf2_dir_str)
         load_cosmetics()
     else:
         messagebox.showerror("Error", "Invalid TF2 directory. 'tf.exe' not found!")
 
 
-def on_all_cosmetics_double_click(event): # Run when cosmetic in enabled list is interacted with
-    selection = cosmetic_listbox.curselection()
-    if not selection:
+def disable_selected(): # Run when cosmetic in enabled list is interacted with
+    selections = cosmetic_listbox.curselection()
+    if not selections:
         return
-    name = cosmetic_listbox.get(selection[0])
-    if name in [c["name"] for c in target_cosmetics]:
-        messagebox.showinfo("Already Disabled", f"{name} is already disabled.")
+
+    selected_names = {cosmetic_listbox.get(i) for i in selections}
+    existing_names = {cosmetic["name"] for cosmetic in target_cosmetics}
+
+    new_cosmetics = [cosmetic for cosmetic in all_cosmetics if cosmetic.get("name") in selected_names and cosmetic.get("name") not in existing_names]
+
+    if not new_cosmetics:
         return
-    answer = messagebox.askyesno("Disable Cosmetic", f"Do you want to disable '{name}'?")
-    if answer:
-        cosmetic_obj = next((c for c in all_cosmetics if c.get("name") == name), None)
-        if cosmetic_obj:
-            target_cosmetics.append(cosmetic_obj)
-            update_disabled_list()
+
+    target_cosmetics.extend(new_cosmetics)
+
+    update_disabled_list()
 
 
-def on_disabled_double_click(event): # Run when cosmetic in disabled list is interacted with
-    selection = disabled_listbox.curselection()
-    if not selection:
+def enable_selected(): # Run when cosmetic in disabled list is interacted with
+    selections = disabled_listbox.curselection()
+    if not selections:
         return
-    name = disabled_listbox.get(selection[0])
-    answer = messagebox.askyesno("Enable Cosmetic", f"Do you want to enable '{name}'?")
-    if answer:
-        index = selection[0]
-        target_cosmetics.pop(index)
-        update_disabled_list()
+
+    selected_names = {disabled_listbox.get(i) for i in selections}
+
+    global target_cosmetics
+    target_cosmetics = [cosmetic for cosmetic in target_cosmetics if cosmetic.get("name") not in selected_names]
+
+    update_disabled_list()
 
 
 def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
-    cosmetic_paths_final = []
-
+    cosmetic_info_final = {}
+    created_dirs = set() # We cache all created directories to reduce disk I/O
+    empty_vtx_paths = []  # We will batch create all empty vtx files to reduce disk I/O
     replace_bodygroups = messagebox.askyesno("Bodygroup Replacements",
                                              "Do you want to replace cosmetic models with stock models when applicable? (Soldier helmet, Sniper hat, etc)\n\nPros:\n\n* Players wearing a disabled cosmetic that affects the hat bodygroup will be wearing the default headwear instead of nothing.\n\nCons:\n\n* If a player wears multiple cosmetics and atleast one of them replaces the default headwear, models have a chance to clip and look ugly.\n\n* A disabled cosmetic replacing Engineer's hard hat will cause the hard hat to have weird physics upon death.")
 
+    # GET BODYGROUPS AND PATHS FOR EVERY COSMETIC
     for cosmetic in target_cosmetics:
+        cosmetic_paths_final = []
+
+        #Getting cosmetic info
         paths = cosmetic.get("paths", [])
+        bodygroups = cosmetic.get("bodygroups", [])
         is_phy_bodygroup = cosmetic.get("phy_bodygroup", False)
+        name = cosmetic.get("name", "").lower()
+
         for path in paths:
-            main, ext = os.path.splitext(path)
-            cosmetic_paths_final.append(main + ".vtx")
+            # if path in cosmetic_paths_final:
+            #     continue
 
-            if any(sub in path for sub in ("sniper", "soldier", "engineer", "scout")): # Check if filepath belongs to model used for one of mentioned classes
-                if is_phy_bodygroup and replace_bodygroups:
-                    cosmetic_paths_final.extend([main + ".mdl", main + ".vvd", main + ".phy"])
+            path = Path(path)
+            print(path)
+            main, ext = path.with_suffix(''), path.suffix
 
-    for path in cosmetic_paths_final: # Create file from each filepath
-        cosmetic_folder = (Path(mod_folder) / path).parent
-        cosmetic_folder.mkdir(exist_ok=True, parents=True)
-        main, ext = os.path.splitext(path)
-        tf_class = next((sub for sub in ("sniper", "soldier", "engineer", "scout") if sub in path), None)
-
-        if isinstance(tf_class, str):
             if ext == ".vtx":
-                shutil.copy(replacement_folder / (tf_class + ext), str(mod_folder / f"{main}.dx80.vtx"))
-                shutil.copy(replacement_folder / (tf_class + ext), str(mod_folder / f"{main}.dx90.vtx"))
-                shutil.copy(replacement_folder / (tf_class + ext), str(mod_folder / f"{main}.sw.vtx"))
-            elif ext == ".mdl":
-                shutil.copy(replacement_folder / (tf_class + ext), str(mod_folder / f"{main}.mdl"))
-            elif ext == ".phy" and tf_class != "engineer":
-                shutil.copy(replacement_folder / (tf_class + ext), str(mod_folder / f"{main}.phy"))
-            elif ext == ".vvd":
-                shutil.copy(replacement_folder / (tf_class + ext), str(mod_folder / f"{main}.vvd"))
-        elif ext == ".vtx":
-            for suffix in ["dx80", "dx90", "sw"]:
-                (mod_folder / f"{main}.{suffix}.vtx").write_text("")
+                cosmetic_paths_final.append(path)
 
-    new_vpk = vpk.new(str(mod_folder))
-    new_vpk.save("Custom-Cosmetic-Disabler.vpk")
+            if replace_bodygroups:
+                if ext == ".mdl":
+                    cosmetic_paths_final.append(path)
+                elif ext == ".vvd":
+                    cosmetic_paths_final.append(path)
+
+                if is_phy_bodygroup and ext == ".phy": # If cosmetic replaces default headgear
+                    cosmetic_paths_final.append(path)
+            else: # If cosmetic replaces bodyparts then replace model anyway no matter what
+                if any(bodygroup in bodygroups_to_always_replace for bodygroup in bodygroups):
+                    if ext == ".mdl":
+                        cosmetic_paths_final.append(path)
+                    elif ext == ".vvd":
+                        cosmetic_paths_final.append(path)
+
+
+            cosmetic_info_final[name] = {"paths": cosmetic_paths_final, "bodygroups": bodygroups}
+
+
+    #CREATE VPK FOLDER STRUCTURE BASED OFF OF THE PATHS
+    for _, cosmetic in cosmetic_info_final.items():
+        paths = cosmetic.get("paths", [])
+        bodygroups = cosmetic.get("bodygroups", [])
+
+        for path in paths:
+            cosmetic_folder = (mod_folder / path).parent
+            path = Path(path) # Convert path string to Path object
+            if cosmetic_folder not in created_dirs:
+                cosmetic_folder.mkdir(exist_ok=True, parents=True)
+                created_dirs.add(cosmetic_folder)
+
+            main, ext, filename = path.with_suffix(''), path.suffix, path.stem
+
+            if "all_class" in str(main): # If the cosmetic is all_class, check for class in last word of filename instead
+                tf_class = next((sub for sub in tf_classes if sub in str(filename.split("_")[-1])), None)
+                if not tf_class:
+                    tf_class = "all_class_one_model"
+            else:
+                tf_class = next((sub for sub in tf_classes if sub in str(path)), None)
+            replacement_model_type = next((bg for bg in bodygroups_to_replace if bg in bodygroups), None)
+            print(bodygroups)
+
+
+            if isinstance(tf_class, str):
+                if tf_class == "scout":  # Enforcing valid bodygroup for Scout
+                    if replacement_model_type == "shoes":
+                        replacement_model_type = "shoes_socks"
+                    elif replacement_model_type == "hat":
+                        if "hat" in bodygroups and "headphones" in bodygroups:
+                            replacement_model_type = "hat_headphones"
+                elif replacement_model_type == "hat":
+                    if "hat" in bodygroups and ("head" in bodygroups or "whole_head" in bodygroups):
+                        replacement_model_type = "head"
+                    if "hat" in bodygroups and "shoes" in bodygroups:
+                        replacement_model_type = "shoes"
+
+                target_file = replacement_folder / (tf_class + '_' + str(replacement_model_type) + ext)
+                print(target_file)
+                if target_file.exists(): # Check if current filepath has a valid replacement file
+                    if ext == ".vtx":
+                        if replace_bodygroups or any(bg in bodygroups_to_always_replace for bg in bodygroups):
+                            for suffix in ["dx80", "dx90", "sw"]:
+                                shutil.copy(target_file, mod_folder / f"{main}.{suffix}{ext}")
+                        else:
+                            for suffix in ["dx80", "dx90", "sw"]:
+                                empty_vtx_paths.append(mod_folder / f"{main}.{suffix}{ext}")
+
+                    elif ext == ".mdl" or ext == ".vvd":
+                        shutil.copy(target_file, mod_folder / f"{main}{ext}")
+
+                    #elif ext == ".phy" and any(bg in ("hat", "headphones") for bg in bodygroups):
+                    elif ext == ".phy":
+                        shutil.copy(target_file, mod_folder / f"{main}{ext}")
+
+                else:
+                    if ext == ".vtx":
+                        for suffix in ["dx80", "dx90", "sw"]:
+                            empty_vtx_paths.append(mod_folder / f"{main}.{suffix}{ext}")
+
+
+    for vtx_path in empty_vtx_paths:
+        vtx_path.parent.mkdir(parents=True, exist_ok=True)
+        vtx_path.write_text("1")
+
+
+    if Path("./Custom-Cosmetic-Disabler.vpk").exists(): # Delete old VPK from previous generation if it exists
+        Path("./Custom-Cosmetic-Disabler.vpk").unlink()
+
+    VPKFile.create(str(mod_folder), "Custom-Cosmetic-Disabler.vpk")
     delete_vpk_folder()
 
-    if os.path.exists("Custom-Cosmetic-Disabler.vpk"): # Check if VPK was created successfully
-        vpk_path = os.path.abspath("Custom-Cosmetic-Disabler.vpk")
+
+    if Path("./Custom-Cosmetic-Disabler.vpk").exists(): # Check if VPK was created successfully
+        vpk_path = Path("./Custom-Cosmetic-Disabler.vpk").resolve()
         messagebox.showinfo("Done", f"VPK file created successfully! Generated at\n{vpk_path}")
     else:
-        messagebox.showerror("VPK Failed", "VPK file failed to generate! Please mention this on Github!")
-
-
-def update_disabled_list(): # Update disabled cosmetics list
-    disabled_listbox.delete(0, tk.END)
-    # for c in target_cosmetics:
-    for c in sorted(target_cosmetics, key=lambda x: x.get("name", "").lower()):
-        disabled_listbox.insert(tk.END, c.get("name"))
+        messagebox.showerror("VPK Failed", "VPK file failed to generate! Have you disabled atleast one cosmetic?")
 
 
 def load_cosmetics(): # Load all cosmetics from items_game.txt
     global all_cosmetics, all_names
-    if not os.path.exists(tf2_dir):
+    #if not os.path.exists(tf2_dir):
+    if not tf2_dir.exists():
         return
-    all_cosmetics = find_cosmetics(os.path.join(tf2_dir, "tf", "scripts", "items", "items_game.txt"))
+    #all_cosmetics = find_cosmetics(os.path.join(tf2_dir, "tf", "scripts", "items", "items_game.txt"))
+    all_cosmetics = find_cosmetics((tf2_dir / items_game_path), tf2_misc_dir)
     #all_names = [c["name"] for c in all_cosmetics if c.get("name")]
     all_names = sorted([c["name"] for c in all_cosmetics if c.get("name")], key=str.lower)
     update_cosmetic_list()
+
+
+def disable_all_cosmetics():
+    answer = messagebox.askyesno("Disable All Cosmetics", f"Are you sure you want to disable EVERY cosmetic?")
+    if answer:
+        existing = {cosmetic["name"] for cosmetic in target_cosmetics}
+        for cosmetic in all_cosmetics:
+            #if not cosmetic in target_cosmetics:
+            if cosmetic["name"] not in existing:
+                target_cosmetics.append(cosmetic)
+
+        update_disabled_list()
 
 
 def update_cosmetic_list(*args): # Update enabled cosmetics list
@@ -239,17 +341,50 @@ def update_cosmetic_list(*args): # Update enabled cosmetics list
             cosmetic_listbox.insert(tk.END, name)
 
 
+def update_disabled_list(*args): # Update disabled cosmetics list
+    search_text = search_var_disabled.get().lower()
+    disabled_listbox.delete(0, tk.END)
+    # for c in target_cosmetics:
+    for cosmetic in sorted(target_cosmetics, key=lambda x: x.get("name", "").lower()):
+        name = cosmetic.get("name", "")
+        if search_text in name.lower():
+            disabled_listbox.insert(tk.END, name)
+
+def update_disabled_list_no_search(*args): # Update disabled cosmetics list without search check
+    disabled_listbox.delete(0, tk.END)
+    # for c in target_cosmetics:
+    for cosmetic in sorted(target_cosmetics, key=lambda x: x.get("name", "").lower()):
+        name = cosmetic.get("name", "")
+        disabled_listbox.insert(tk.END, name)
+
+def clear_target_cosmetics():
+    global target_cosmetics
+    answer = messagebox.askyesno("Clear Disabled Cosmetics", f"Are you sure you want to clear your disabled cosmetics?")
+    if answer:
+        target_cosmetics = []
+        update_disabled_list_no_search()
+
 # GUI setup
 root = tk.Tk()
 root.title("TF2 Cosmetic Disabler")
 root.geometry("650x600")
 icon_path = resource_path(r"tf2_ico.ico")
 
-if os.path.exists(icon_path):
+if Path(icon_path).exists():
     root.iconbitmap(icon_path)
-
 root.protocol("WM_DELETE_WINDOW", on_close)
 
+# Menu bar
+menubar = Menu(root)
+cosmetics_menu = Menu(menubar, tearoff=0)
+cosmetics_menu.add_command(label="Disable all cosmetics", command=disable_all_cosmetics)
+cosmetics_menu.add_command(label="Clear Disabled Cosmetics", command=clear_target_cosmetics)
+menubar.add_cascade(label="Cosmetics", menu=cosmetics_menu)
+
+spacer = tk.Frame(root, height=6, bg="#f0f0f0")  # same color as default background
+spacer.pack(fill="x")
+
+root.config(menu=menubar)
 # TF2 dir selection
 frame_top = ttk.LabelFrame(root, text="TF2 Directory")
 frame_top.pack(fill="x", padx=10, pady=5)
@@ -263,48 +398,73 @@ search_var.trace_add("write", update_cosmetic_list)
 search_frame = ttk.Frame(root)
 search_frame.pack(fill="x", padx=10, pady=5)
 ttk.Label(search_frame, text="Search:").pack(side="left", padx=(0, 5))
-search_entry = ttk.Entry(search_frame, textvariable=search_var)
-search_entry.pack(side="left", fill="x", expand=True)
+search_entry = ttk.Entry(search_frame, textvariable=search_var, width=30)
+search_entry.pack(side="left")
+
+# Disable Selected Button
+ttk.Button(search_frame, text="Disable Selected", command=lambda: disable_selected()).pack(side="left", padx=5)
 
 # Cosmetic list
 list_frame = ttk.Frame(root)
 list_frame.pack(fill="both", expand=True, padx=10, pady=5)
 scrollbar = ttk.Scrollbar(list_frame, orient="vertical")
 scrollbar.pack(side="right", fill="y")
-cosmetic_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set)
+cosmetic_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, selectmode=tk.EXTENDED)
 cosmetic_listbox.pack(fill="both", expand=True)
 scrollbar.config(command=cosmetic_listbox.yview)
-cosmetic_listbox.bind("<Double-Button-1>", on_all_cosmetics_double_click)
+# cosmetic_listbox.bind("<Double-Button-1>", on_all_cosmetics_double_click)
 
 # Disabled cosmetics list
 frame_disabled = ttk.LabelFrame(root, text="Disabled Cosmetics")
 frame_disabled.pack(fill="both", expand=True, padx=10, pady=5)
-disabled_listbox = tk.Listbox(frame_disabled)
+
+# Search bar for disabled cosmetics
+search_var_disabled = tk.StringVar()
+search_var_disabled.trace_add("write", update_disabled_list)
+search_frame_disabled = ttk.Frame(frame_disabled)
+search_frame_disabled.pack(fill="x", padx=10, pady=5)
+ttk.Label(search_frame_disabled, text="Search:").pack(side="left", padx=(0, 5))
+search_entry_disabled = ttk.Entry(search_frame_disabled, textvariable=search_var_disabled, width=30)
+search_entry_disabled.pack(side="left")
+
+scrollbar2 = ttk.Scrollbar(frame_disabled, orient="vertical")
+scrollbar2.pack(side="right", fill="y")
+
+ttk.Button(search_frame_disabled, text="Enable Selected", command=lambda: enable_selected()).pack(side="left", padx=5)
+
+# Actual disabled cosmetics list
+disabled_listbox = tk.Listbox(frame_disabled, yscrollcommand=scrollbar2.set, selectmode=tk.EXTENDED)
 disabled_listbox.pack(fill="both", expand=True, padx=5, pady=5)
-#ttk.Button(frame_disabled, text="Enable Selected", command=lambda: on_disabled_double_click(None)).pack(pady=5)
-disabled_listbox.bind("<Double-Button-1>", on_disabled_double_click)
+scrollbar2.config(command=disabled_listbox.yview)
+# disabled_listbox.bind("<Double-Button-1>", on_disabled_double_click)
 
 # Bottom buttons
 frame_bottom = ttk.Frame(root)
 frame_bottom.pack(fill="x", pady=10)
 ttk.Button(frame_bottom, text="Save", command=save_cosmetics).pack(side="left", padx=10)
 ttk.Button(frame_bottom, text="Create VPK", command=create_vpk).pack(side="left", padx=10)
+#ttk.Button(frame_bottom, text="Create VPK", command=disable_all_cosmetics).pack(side="left", padx=10)
 ttk.Button(frame_bottom, text="Quit", command=on_close).pack(side="right", padx=10)
 
 # Load existing disabled cosmetics
 if cosmetic_data.exists():
     with open(cosmetic_data, "r") as f:
-        target_cosmetics = json.load(f)
+        try:
+            target_cosmetics = json.load(f)
+        except JSONDecodeError:
+            target_cosmetics = []
+
     update_disabled_list()
 
 # Load TF2 folder if previously saved
 custom_tf2_file = program_data / "data"
 if custom_tf2_file.exists():
     with open(custom_tf2_file, "r") as f:
-        saved_dir = f.readline().strip()
-    if os.path.exists(os.path.join(saved_dir, "tf", "scripts", "items", "items_game.txt")):
+        saved_dir = Path(f.readline().strip())
+    #if os.path.exists(os.path.join(saved_dir, "tf", "scripts", "items", "items_game.txt")):
+    if (saved_dir / items_game_path).exists():
         tf2_dir = saved_dir
-        tf2_dir_label.config(text=tf2_dir)
+        tf2_dir_label.config(text=str(tf2_dir))
         load_cosmetics()
 
 root.mainloop()
