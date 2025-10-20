@@ -87,6 +87,7 @@ mod_folder = Path().absolute() / "Cosmetic-Mod-Staging"
 program_data = Path().absolute() / "Cosmetic Disabler Data"
 cosmetic_data = program_data / "data2"
 replacement_folder = Path().absolute() / "Replacement Files"
+zombie_skins = replacement_folder / "zombie_skins/materials/models/player"
 
 for folder in (mod_folder, program_data):
     folder.mkdir(exist_ok=True)
@@ -204,6 +205,7 @@ def enable_selected(): # Run when cosmetic in disabled list is interacted with
 
 def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
     cosmetic_info_final = {}
+    zombie_skin_detected = False
     created_dirs = set() # We cache all created directories to reduce disk I/O
     paths_to_copy = [] # We will batch copy all replacement files to reduce disk I/O
     empty_vtx_paths = []  # We will batch create all empty vtx files to reduce disk I/O
@@ -263,6 +265,8 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
 
         paths = cosmetic.get("paths", [])
         bodygroups = cosmetic.get("bodygroups", [])
+        name = cosmetic.get("name", "")
+        print(name)
 
         for path in paths:
             cosmetic_folder = (mod_folder / path).parent
@@ -280,7 +284,9 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
             else:
                 tf_class = next((sub for sub in tf_classes if sub in str(path)), None)
             replacement_model_type = next((bg for bg in bodygroups_to_replace if bg in bodygroups), None)
-            #print(bodygroups)
+
+            if "voodoo-cursed" in name: # Check if cosmetic is a zombie skin
+                replacement_model_type = "zombie"
 
 
             if isinstance(tf_class, str):
@@ -344,6 +350,20 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                         for suffix in ["dx80", "dx90", "sw"]:
                             empty_vtx_paths.append(mod_folder / f"{main}.{suffix}{ext}")
 
+                    if replacement_model_type == "zombie":
+                        zombie_skin_detected = True
+                        if tf_class == "heavy":
+                            tf_class = "hvyweapon"
+
+                        for folder in zombie_skins.iterdir():
+                            if folder.is_dir() and folder.name == tf_class:
+                                files = [f for f in folder.iterdir() if f.is_file()]
+                                for file in files:
+                                    ext, filename = file.suffix, file.stem
+                                    create_folder = f"materials/models/player/{tf_class}"
+                                    (mod_folder / create_folder).mkdir(parents=True, exist_ok=True)
+                                    shutil.copy(file, mod_folder / f"materials/models/player/{tf_class}/{filename}{ext}")
+
     # Batch writing data to disk
     for folder in created_dirs:
         folder.mkdir(parents=True, exist_ok=True)
@@ -373,6 +393,8 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
     if Path("./Custom-Cosmetic-Disabler.vpk").exists(): # Check if VPK was created successfully
         vpk_path = Path("./Custom-Cosmetic-Disabler.vpk").resolve()
         messagebox.showinfo("Done", f"VPK file created successfully! Generated at\n{vpk_path}")
+        if zombie_skin_detected:
+            messagebox.showwarning("WARNING", "You have disabled atleast one voodoo soul cosmetic.\n\nIn order for them to be disabled correctly in sv_pure 1/2 servers (and Casual) you will have to use Cueki's Casual Preloader.\n\n NOT doing so risks errors/crashes!")
     else:
         messagebox.showerror("VPK Failed", "VPK file failed to generate! Have you disabled atleast one cosmetic?")
 

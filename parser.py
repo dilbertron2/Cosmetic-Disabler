@@ -59,7 +59,7 @@ tf_classes = [
 cosmetic_keywords = [  # Detect cosmetics by prefab or slot
     "hat", "misc", "paintable", "base_hat", "base_misc",
     "cosmetic", "tournament_medal", "tf_wearable", "grenades",
-    "backpack", "beard"
+    "backpack", "beard", "zombie"
 ]
 
 localisation_dict = None
@@ -232,7 +232,7 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                 if item.get("hidden") != "1":
                     if prefab not in ("base_cosmetic_case", "base_keyless_cosmetic_case") and name not in (
                             "Glitched Circuit Board", "Damaged Capacitor", "Web Easteregg Medal",
-                            "Tournament Medal (Armory)"):
+                            "Tournament Medal (Armory)", "Voodoo-Cursed Soul (Armory)"):
 
                         # Just before we add to cosmetic list, check if loc string exists, if it does, replace name with name from loc file
                         if item_loc_name:
