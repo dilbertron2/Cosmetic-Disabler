@@ -65,11 +65,14 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, Menu
 import threading
-
+import requests
+from packaging import version
+import webbrowser
 # Variables & paths
-# items_game_path = r"tf\scripts\items\items_game.txt"
-# tf2_default_dir = r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2"
-# tf2_dir = ""
+
+CURRENT_VERSION = "1.1.1"
+REPO = "dilbertron2/Cosmetic-Disabler"
+
 items_game_path = Path(r"tf\scripts\items\items_game.txt")
 tf2_default_dir = Path(r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2")
 tf2_dir = Path("")
@@ -103,6 +106,23 @@ if sys.platform == "win32":  # Force custom app ID to ensure program icon usage
         pass
 
 # Functions
+def get_latest_release(repo):
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    response = requests.get(url, timeout=3)
+    if response.status_code == 200:
+        data = response.json()
+        return data["tag_name"].lstrip("v")
+
+def check_for_update():
+    try:
+        latest = get_latest_release(REPO)
+        if version.parse(latest) > version.parse(CURRENT_VERSION):
+            answer = messagebox.askyesno("New Version Available!", "A new version of the Cosmetic Disabler is available!\n\nWould you like to go to the download page?")
+            if answer:
+                webbrowser.open(f"https://gamebanana.com/tools/20969")
+    except Exception as e:
+        print(f"Could not check for updates: {e}")
+
 def copy_file(src, dst):
     shutil.copy(src, dst)
 
@@ -575,4 +595,5 @@ if custom_tf2_file.exists():
         tf2_dir_label.config(text=str(tf2_dir))
         load_cosmetics()
 
+check_for_update()
 root.mainloop()
