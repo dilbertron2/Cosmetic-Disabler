@@ -12,18 +12,23 @@ Download the latest release and run 'Cosmetic Disabler.exe' to start the program
 Once the directory is selected the program will load every cosmetic in TF2 into a list.
 
 ### Linux
-1. Install Python and tkinter:
+1. Download the repository:
+   ```bash
+   git clone https://github.com/dilbertron2/Cosmetic-Disabler.git && cd Cosmetic-Disabler
+   ```
+   Or click the green **"Code"** button at the top right of the GitHub page and select "Download ZIP", then extract it.
+
+2. Install Python and tkinter:
+
    - **Debian/Ubuntu**: `sudo apt install python3 python3-pip python3-tk python3-venv`
    - **Arch**: `sudo pacman -S python python-pip tk`
    - **Fedora**: `sudo dnf install python3 python3-pip python3-tkinter python3-virtualenv`
 
-2. Make the launcher executable and run it:
+3. Make the launcher executable and run it:
    ```bash
    chmod +x run.sh && ./run.sh
    ```
-
    For subsequent runs, just use `./run.sh`
-
 
 
 You can double-click on a cosmetic to disable/re-enable it. When you are ready to create a VPK with your changes, click the 'Create VPK' button to generate the VPK file. You will be given a choice on behavior regarding cosmetic bodygroups, and then the file will be created in the same folder as the program.
