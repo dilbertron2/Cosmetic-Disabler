@@ -43,4 +43,4 @@ fi
 
 # Run the program
 echo "Starting TF2 Cosmetic Disabler..."
-python cosmetic_disabler.py
+python3 cosmetic_disabler.py
