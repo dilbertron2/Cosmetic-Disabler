@@ -99,14 +99,24 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                     if match:
                         key, value = match.groups()
                         localisation_dict[key] = value
-
+    prefabs = {}
     cosmetics = []
+
     with open(file_path, encoding="utf-8") as file:
         data = vdf.load(file)
+        item_prefabs = data["items_game"]["prefabs"]
         items = data["items_game"]["items"]
 
+        for prefab_name, prefab in item_prefabs.items(): # Get all prefabs in items_game.txt
+            slot = prefab.get("item_slot", "").lower()
+            inheriting_prefab = prefab.get("prefab", "")
+            is_cosmetic = slot in ("head", "misc", "body", "feet") or any(k in inheriting_prefab for k in ("hat", "misc"))
+
+            if is_cosmetic:
+                prefabs[prefab_name] = prefab
+
         for item_id, item in items.items():  # Iterate through every single item in items_game.txt
-            name = item.get("name")
+            name = item.get("name", "")
             prefab = item.get("prefab", "").lower()
             slot = item.get("item_slot", "").lower()
             item_loc_name = item.get("item_name", "").replace("#", "")
@@ -114,6 +124,22 @@ def find_cosmetics(file_path: Path, misc_dir_location):
             bodygroups = []
             phy_bodygroup = False
             valid_classes = []
+
+            #if prefab and not (slot and item_loc_name and name): # Item inherits all/most stats from prefab
+            if prefab in ("pyrovision_goggles", "triad_trinket", "champ_stamp", "marxman", "cannonball", "item_bak_fear_monger","item_bak_arkham_cowl", "item_bak_firefly"): # Item inherits all/most stats from prefab
+                item = prefabs[prefab]
+                # Rerun item checks now that prefab replaces item info
+                if not name:
+                    name = item.get("name")
+                if not prefab:
+                    prefab = item.get("prefab", "").lower()
+                if not slot:
+                    slot = item.get("item_slot", "").lower()
+                    if not slot:
+                        slot = "misc"
+                if not item_loc_name:
+                    item_loc_name = item.get("item_name", "").replace("#", "")
+
 
             is_cosmetic = (
                     any(k in prefab for k in cosmetic_keywords)
@@ -250,5 +276,17 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                             # "modelstyles": modelstyles,
                             # "validclasses": valid_classes
                         })
+
+
+    unique_cosmetics = []
+    seen_names = set()
+
+    for cosmetic in cosmetics:
+        name = cosmetic.get("name", "").lower()
+        if name not in seen_names:
+            seen_names.add(name)
+            unique_cosmetics.append(cosmetic)
+
+    cosmetics = unique_cosmetics
 
     return cosmetics

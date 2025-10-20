@@ -253,7 +253,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                         cosmetic_paths_final.append(path)
 
 
-            cosmetic_info_final[name] = {"paths": cosmetic_paths_final, "bodygroups": bodygroups}
+            cosmetic_info_final[name] = {"paths": cosmetic_paths_final, "bodygroups": bodygroups, "name": name}
 
 
     #CREATE VPK FOLDER STRUCTURE BASED OFF OF THE PATHS
@@ -286,22 +286,33 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
             if isinstance(tf_class, str):
                 if tf_class == "scout":  # Enforcing valid bodygroup for Scout
                     if replacement_model_type == "shoes":
+
                         replacement_model_type = "shoes_socks"
                     elif replacement_model_type == "hat" or replacement_model_type == "headphones":
                         if "hat" in bodygroups and "headphones" in bodygroups:
                             replacement_model_type = "hat_headphones"
+
                     elif replacement_model_type == "head" or replacement_model_type == "whole_head":
                         if "whole_head" in bodygroups and "headphones" in bodygroups:
                             replacement_model_type = "hat_headphones"
 
-                elif replacement_model_type == "hat":
+                if replacement_model_type == "hat":
                     if "hat" in bodygroups and ("head" in bodygroups or "whole_head" in bodygroups):
                         replacement_model_type = "head"
+
                     if "hat" in bodygroups and "shoes" in bodygroups:
                         replacement_model_type = "shoes"
+
                 elif replacement_model_type == "headphones": # Enforce correct bodygroup for multi-class cosmetics that can be worn by scout
                     if "hat" in bodygroups and "headphones" in bodygroups and tf_class != "scout":
                         replacement_model_type = "hat"
+
+                    elif any(name in cosmetic.get("name", "").lower() for name in ("arkham cowl", "promo arkham cowl")):
+                        replacement_model_type = "hat"
+
+                        if tf_class == "scout":
+                            replacement_model_type = "hat_headphones"
+
                 elif replacement_model_type == "shoes_socks" and tf_class != "scout":
                     replacement_model_type = "shoes"
 
