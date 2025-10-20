@@ -394,7 +394,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
         vpk_path = Path("./Custom-Cosmetic-Disabler.vpk").resolve()
         messagebox.showinfo("Done", f"VPK file created successfully! Generated at\n{vpk_path}")
         if zombie_skin_detected:
-            messagebox.showwarning("WARNING", "You have disabled atleast one voodoo soul cosmetic.\n\nIn order for them to be disabled correctly in sv_pure 1/2 servers (and Casual) you will have to use Cueki's Casual Preloader.\n\n NOT doing so risks errors/crashes!")
+            messagebox.showwarning("WARNING", "You have disabled atleast one voodoo soul cosmetic.\n\nIn order for them to be disabled correctly in sv_pure 1/2 servers (and Casual) you will have to use Cukei's Casual Preloader.\n\n NOT doing so risks errors/crashes!")
     else:
         messagebox.showerror("VPK Failed", "VPK file failed to generate! Have you disabled atleast one cosmetic?")
 
