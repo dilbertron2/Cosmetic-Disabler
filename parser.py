@@ -55,6 +55,13 @@ tf_classes = [
     "scout", "soldier", "pyro", "demo", "heavy",
     "engineer", "medic", "sniper", "spy"
 ]
+
+cosmetic_keywords = [  # Detect cosmetics by prefab or slot
+    "hat", "misc", "paintable", "base_hat", "base_misc",
+    "cosmetic", "tournament_medal", "tf_wearable", "grenades",
+    "backpack", "beard"
+]
+
 localisation_dict = None
 
 
@@ -108,11 +115,6 @@ def find_cosmetics(file_path: Path, misc_dir_location):
             phy_bodygroup = False
             valid_classes = []
 
-            cosmetic_keywords = [  # Detect cosmetics by prefab or slot
-                "hat", "misc", "paintable", "base_hat", "base_misc",
-                "cosmetic", "tournament_medal", "tf_wearable", "grenades",
-                "backpack"
-            ]
             is_cosmetic = (
                     any(k in prefab for k in cosmetic_keywords)
                     or slot in ("head", "misc", "body", "feet")
