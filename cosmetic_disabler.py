@@ -73,10 +73,9 @@ import webbrowser
 CURRENT_VERSION = "1.1.1"
 REPO = "dilbertron2/Cosmetic-Disabler"
 
-items_game_path = Path(r"tf\scripts\items\items_game.txt")
-tf2_default_dir = Path(r"C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2")
+items_game_path = Path("tf/scripts/items/items_game.txt")
 tf2_dir = Path("")
-tf2_misc_dir = Path(r"tf\tf2_misc_dir.vpk")
+tf2_misc_dir = Path("tf/tf2_misc_dir.vpk")
 target_cosmetics = []
 all_cosmetics = []
 all_names = []
@@ -142,6 +141,22 @@ def resource_path(relative_path): # Check whether program has been compiled with
         #base_path = os.path.abspath(".")
         base_path = Path(".").resolve()
     return base_path / relative_path
+
+def auto_detect_tf2():
+    # Attempt to automatically detect TF2 installation directory from common locations (linux and windows)
+    common_paths = [
+        "C:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2",
+        "D:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2",
+        "~/.steam/steam/steamapps/common/Team Fortress 2",
+        "~/.local/share/Steam/steamapps/common/Team Fortress 2",
+    ]
+
+    for path_str in common_paths:
+        path = Path(path_str).expanduser()
+        if path.exists() and (path / items_game_path).exists():
+            return path
+
+    return None
 
 def delete_vpk_folder():
     if mod_folder.exists():
@@ -487,11 +502,15 @@ def clear_target_cosmetics():
 # GUI setup
 root = tk.Tk()
 root.title("TF2 Cosmetic Disabler")
-root.geometry("650x600")
+root.geometry("650x750")
 icon_path = resource_path(r"tf2_ico.ico")
 
 if Path(icon_path).exists():
-    root.iconbitmap(icon_path)
+    try:
+        root.iconbitmap(icon_path)
+    except Exception:
+        # iconbitmap doesn't work with .ico files on Linux
+        pass
 root.protocol("WM_DELETE_WINDOW", on_close)
 
 # Menu bar
@@ -594,6 +613,16 @@ if custom_tf2_file.exists():
         tf2_dir = saved_dir
         tf2_dir_label.config(text=str(tf2_dir))
         load_cosmetics()
+else:
+    # Try auto-detection if no saved folder exists
+    detected_dir = auto_detect_tf2()
+    if detected_dir:
+        tf2_dir = detected_dir
+        tf2_dir_label.config(text=str(tf2_dir))
+        with open(custom_tf2_file, "w") as file:
+            file.write(str(tf2_dir))
+        load_cosmetics()
+        messagebox.showinfo("TF2 Auto-Detected", f"TF2 directory automatically detected at:\n{tf2_dir}")
 
 check_for_update()
 root.mainloop()
