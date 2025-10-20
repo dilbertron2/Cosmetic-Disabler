@@ -1,0 +1,4 @@
+valve_parsers
+requests
+packaging
+vdf

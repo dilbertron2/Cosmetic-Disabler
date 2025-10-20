@@ -6,8 +6,23 @@ The Cosmetic Disabler allows you to disable cosmetics of your choice, stopping t
 
 It will ***dynamically update*** with Team Fortress 2 and should not need to be updated after updates to detect new cosmetics.
 ## How do I use it?
+
+### Windows
 Download the latest release and run 'Cosmetic Disabler.exe' to start the program. On first time start-up you will have to provide your 'Team Fortress 2' directory.
 Once the directory is selected the program will load every cosmetic in TF2 into a list.
+
+### Linux
+1. Install Python and tkinter:
+   - **Debian/Ubuntu**: `sudo apt install python3 python3-pip python3-tk python3-venv`
+   - **Arch**: `sudo pacman -S python python-pip tk`
+   - **Fedora**: `sudo dnf install python3 python3-pip python3-tkinter python3-virtualenv`
+
+2. Make the launcher executable and run it:
+   ```bash
+   chmod +x run.sh && ./run.sh
+   ```
+
+   For subsequent runs, just use `./run.sh`
 
 
 
