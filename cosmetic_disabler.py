@@ -294,6 +294,15 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
         bodygroups = cosmetic.get("bodygroups", [])
         name = cosmetic.get("name", "")
 
+        if name == "grandmaster" and paths:
+            for path in paths:
+                filename = path.stem
+                last_word = filename.split("_")[-1]
+                if last_word == "red":
+                    new_path = path.with_name(path.name.replace("red", "blue"))
+                    paths.append(new_path)
+
+
         for path in paths:
             cosmetic_folder = (mod_folder / path).parent
             path = Path(path) # Convert path string to Path object
@@ -302,10 +311,19 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                 created_dirs.add(cosmetic_folder)
 
             main, ext, filename = path.with_suffix(''), path.suffix, path.stem
+            filename_parts = filename.split("_")
 
             if "all_class" in str(main): # If the cosmetic is all_class, check for class in last word of filename instead
-                tf_class = next((sub for sub in tf_classes if sub in str(filename.split("_")[-1])), None)
+                #tf_class = next((sub for sub in tf_classes if sub in str(filename.split("_"))[-1]), None)
+                if filename_parts:
+                    tf_class = next((sub for sub in tf_classes if sub in filename_parts[-1]), None)
+                    if not tf_class:
+                        if len(filename_parts) >= 2:
+                            tf_class = next((sub for sub in tf_classes if sub in filename_parts[-2]), None) # If for some reason class isn't last word in name, check second to last
+                            if not tf_class:
+                                tf_class = next((sub for sub in tf_classes if sub in filename_parts[0]), None) # Check first word
                 if not tf_class:
+                    print(name)
                     tf_class = "all_class_one_model"
             else:
                 tf_class = next((sub for sub in tf_classes if sub in str(path)), None)

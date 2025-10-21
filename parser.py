@@ -266,7 +266,7 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                         })
 
 
-    unique_cosmetics = []
+    unique_cosmetics = [] # Remove duplicate cosmetics
     seen_names = set()
 
     for cosmetic in cosmetics:
