@@ -138,7 +138,6 @@ def resource_path(relative_path): # Check whether program has been compiled with
     try:
         base_path = Path(sys._MEIPASS)
     except AttributeError:
-        #base_path = os.path.abspath(".")
         base_path = Path(".").resolve()
     return base_path / relative_path
 
@@ -204,7 +203,7 @@ def get_custom_dir(): # Prompt user for custom TF2 directory
         tf2_dir_label.config(text=tf2_dir_str)
         load_cosmetics()
     else:
-        messagebox.showerror("Error", "Invalid TF2 directory. 'tf.exe' not found!")
+        messagebox.showerror("Error", "Invalid TF2 directory. 'tf/scripts/items/items_game.txt' not found!")
 
 
 def disable_selected(): # Run when cosmetic in enabled list is interacted with
@@ -255,8 +254,6 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
         cosmetic_paths_final = []
 
         #Getting cosmetic info
-
-        #paths = cosmetic.get("paths", [])
         paths = [Path(path) for path in cosmetic.get("paths", [])]
 
         bodygroups = cosmetic.get("bodygroups", [])
@@ -264,11 +261,6 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
         name = cosmetic.get("name", "").lower()
 
         for path in paths:
-            # if path in cosmetic_paths_final:
-            #     continue
-
-            #path = Path(path)
-            #print(path)
             main, ext = path.with_suffix(''), path.suffix
 
             if ext == ".vtx":
@@ -301,7 +293,6 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
         paths = cosmetic.get("paths", [])
         bodygroups = cosmetic.get("bodygroups", [])
         name = cosmetic.get("name", "")
-        print(name)
 
         for path in paths:
             cosmetic_folder = (mod_folder / path).parent
@@ -322,7 +313,6 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
 
             if "voodoo-cursed" in name: # Check if cosmetic is a zombie skin
                 replacement_model_type = "zombie"
-
 
             if isinstance(tf_class, str):
                 if tf_class == "scout":  # Enforcing valid bodygroup for Scout
@@ -359,25 +349,22 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
 
 
                 target_file = replacement_folder / (tf_class + '_' + str(replacement_model_type) + ext)
-                #print(target_file)
-                #if target_file.exists(): # Check if current filepath has a valid replacement file
+
+
                 if replacement_exists_cached(target_file):
                     if ext == ".vtx":
                         if replace_bodygroups or any(bg in bodygroups_to_always_replace for bg in bodygroups):
                             for suffix in ["dx80", "dx90", "sw"]:
-                                #shutil.copy(target_file, mod_folder / f"{main}.{suffix}{ext}")
                                 paths_to_copy.append((target_file, mod_folder / f"{main}.{suffix}{ext}"))
                         else:
                             for suffix in ["dx80", "dx90", "sw"]:
                                 empty_vtx_paths.append(mod_folder / f"{main}.{suffix}{ext}")
 
                     elif ext == ".mdl" or ext == ".vvd":
-                        #shutil.copy(target_file, mod_folder / f"{main}{ext}")
                         paths_to_copy.append((target_file, mod_folder / f"{main}{ext}"))
 
                     #elif ext == ".phy" and any(bg in ("hat", "headphones") for bg in bodygroups):
                     elif ext == ".phy":
-                        #shutil.copy(target_file, mod_folder / f"{main}{ext}")
                         paths_to_copy.append((target_file, mod_folder / f"{main}{ext}"))
 
                 else:
@@ -385,7 +372,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                         for suffix in ["dx80", "dx90", "sw"]:
                             empty_vtx_paths.append(mod_folder / f"{main}.{suffix}{ext}")
 
-                    if replacement_model_type == "zombie":
+                    if replacement_model_type == "zombie": # Voodoo souls require material changes
                         zombie_skin_detected = True
                         if tf_class == "heavy":
                             tf_class = "hvyweapon"
@@ -402,13 +389,6 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
     # Batch writing data to disk
     for folder in created_dirs:
         folder.mkdir(parents=True, exist_ok=True)
-
-    # for file, path in paths_to_copy:
-    #     shutil.copy(file, path)
-    #
-    # for vtx_path in empty_vtx_paths:
-    #     vtx_path.parent.mkdir(parents=True, exist_ok=True)
-    #     vtx_path.write_text("1")
 
     with ThreadPoolExecutor(max_workers=8) as executor: # Multithreaded file creation
         future_copy = executor.submit(lambda: list(map(lambda args: copy_file(*args), paths_to_copy)))
@@ -446,12 +426,12 @@ def start_vpk_creation():
 
 def load_cosmetics(): # Load all cosmetics from items_game.txt
     global all_cosmetics, all_names
-    #if not os.path.exists(tf2_dir):
+
     if not tf2_dir.exists():
         return
-    #all_cosmetics = find_cosmetics(os.path.join(tf2_dir, "tf", "scripts", "items", "items_game.txt"))
+
     all_cosmetics = find_cosmetics((tf2_dir / items_game_path), tf2_misc_dir)
-    #all_names = [c["name"] for c in all_cosmetics if c.get("name")]
+
     all_names = sorted([c["name"] for c in all_cosmetics if c.get("name")], key=str.lower)
     update_cosmetic_list()
 
@@ -461,7 +441,7 @@ def disable_all_cosmetics():
     if answer:
         existing = {cosmetic["name"] for cosmetic in target_cosmetics}
         for cosmetic in all_cosmetics:
-            #if not cosmetic in target_cosmetics:
+
             if cosmetic["name"] not in existing:
                 target_cosmetics.append(cosmetic)
 
@@ -479,7 +459,7 @@ def update_cosmetic_list(*args): # Update enabled cosmetics list
 def update_disabled_list(*args): # Update disabled cosmetics list
     search_text = search_var_disabled.get().lower()
     disabled_listbox.delete(0, tk.END)
-    # for c in target_cosmetics:
+
     for cosmetic in sorted(target_cosmetics, key=lambda x: x.get("name", "").lower()):
         name = cosmetic.get("name", "")
         if search_text in name.lower():
@@ -487,7 +467,7 @@ def update_disabled_list(*args): # Update disabled cosmetics list
 
 def update_disabled_list_no_search(*args): # Update disabled cosmetics list without search check
     disabled_listbox.delete(0, tk.END)
-    # for c in target_cosmetics:
+
     for cosmetic in sorted(target_cosmetics, key=lambda x: x.get("name", "").lower()):
         name = cosmetic.get("name", "")
         disabled_listbox.insert(tk.END, name)
@@ -608,7 +588,7 @@ custom_tf2_file = program_data / "data"
 if custom_tf2_file.exists():
     with open(custom_tf2_file, "r") as f:
         saved_dir = Path(f.readline().strip())
-    #if os.path.exists(os.path.join(saved_dir, "tf", "scripts", "items", "items_game.txt")):
+
     if (saved_dir / items_game_path).exists():
         tf2_dir = saved_dir
         tf2_dir_label.config(text=str(tf2_dir))

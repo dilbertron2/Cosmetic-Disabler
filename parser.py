@@ -125,8 +125,8 @@ def find_cosmetics(file_path: Path, misc_dir_location):
             phy_bodygroup = False
             valid_classes = []
 
-            #if prefab and not (slot and item_loc_name and name): # Item inherits all/most stats from prefab
-            if prefab in ("pyrovision_goggles", "triad_trinket", "champ_stamp", "marxman", "cannonball", "item_bak_fear_monger","item_bak_arkham_cowl", "item_bak_firefly"): # Item inherits all/most stats from prefab
+            # Item inherits all/most stats from prefab
+            if prefab in ("pyrovision_goggles", "triad_trinket", "champ_stamp", "marxman", "cannonball", "item_bak_fear_monger","item_bak_arkham_cowl", "item_bak_firefly"):
                 item = prefabs[prefab]
                 # Rerun item checks now that prefab replaces item info
                 if not name:
@@ -172,10 +172,8 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                         valid_classes = tf_classes
 
                     if basename == "" or basename is None:
-                        # basename = {}
                         basename = []
                         for TF_class, path in mp.items():
-                            # basename[TF_class] = path
                             basename.append(path)
                     elif basename != "" or basename is not None:  # Replace %s filepath placeholder with relevant classes
                         basename = [basename.replace("%s", cls) for cls in valid_classes]
@@ -184,10 +182,6 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                 elif not isinstance(mp, dict):  # Grab model_player if nested basename not found
                     basename = item.get("model_player", None)
                     if isinstance(basename, str):
-                        # if "%s" in basename:
-                        # basename = [
-                        # basename.replace("%s", cls) for cls in valid_classes
-                        # ]
                         basename = [basename]
 
                 visuals = item.get("visuals")
@@ -225,7 +219,6 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                     target_bodygroups = visuals.get("player_bodygroups")  # Get bodygroups
                     if isinstance(target_bodygroups, dict):
                         for bodygroupname, value in target_bodygroups.items():
-                            # if bodygroupname in ("hat", "headphones", "head"): # Check if bodygroups affect default headgear or body
                             if value == "1":
                                 bodygroups.append(bodygroupname)
 
@@ -251,13 +244,8 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                             for path in basename:
                                 path = Path(path)
                                 main, ext = path.with_suffix(''), path.suffix
-
-                                # for suffix in ["dx80", "dx90", "sw"]: # Add VTX files
-                                #     paths_to_add.append(f"{main}.{suffix}.vtx")
                                 paths_to_add.append(f"{main}.vtx")
-
                                 paths_to_add.append(f"{main}.vvd")
-
                                 if phy_bodygroup:
                                     paths_to_add.append(f"{main}.phy")
 
