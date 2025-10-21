@@ -4,11 +4,11 @@
 ## What does this program do?
 The Cosmetic Disabler allows you to disable cosmetics of your choice, stopping them from rendering in-game, while leaving every other cosmetic unaffected.
 
-It will ***dynamically update*** with Team Fortress 2 and should not need to be updated after updates to detect new cosmetics.
+It will ***dynamically update*** with Team Fortress 2 and should not need to be updated after seasonal updates to detect new cosmetics.
 ## How do I use it?
 
 ### Windows
-Download the latest release and run 'Cosmetic Disabler.exe' to start the program. On first time start-up you will have to provide your 'Team Fortress 2' directory.
+Download the latest release and run 'Cosmetic Disabler.exe' to start the program. On first time start-up you will have to provide your 'Team Fortress 2' directory if the program can't auto-detect.
 Once the directory is selected the program will load every cosmetic in TF2 into a list.
 
 ### Linux
@@ -31,7 +31,7 @@ Once the directory is selected the program will load every cosmetic in TF2 into 
    For subsequent runs, just use `./run.sh`
 
 
-You can double-click on a cosmetic to disable/re-enable it. When you are ready to create a VPK with your changes, click the 'Create VPK' button to generate the VPK file. You will be given a choice on behavior regarding cosmetic bodygroups, and then the file will be created in the same folder as the program.
+You can select cosmetics from the list by left-clicking, left-click and dragging, shift-clicking and ctrl-clicking. Press the relevant "... Selected" button to add/remove cosmetics from your target list. When you are ready to create a VPK with your changes, click the 'Create VPK' button to generate the VPK file. You will be given a choice on behavior regarding cosmetic bodygroups, and then the VPK file will be created in the same folder as the program.
 
 # [Latest Release](https://github.com/dilbertron2/Cosmetic-Disabler/releases)
 
@@ -39,4 +39,4 @@ You can double-click on a cosmetic to disable/re-enable it. When you are ready t
 
 **Q:** Where do I put the VPK after creation?
 
-**A:** Place the VPK file in your 'Team Fortress 2/tf/custom' folder.
+**A:** Place the VPK file in your 'Team Fortress 2/tf/custom' folder. The outputted VPK is also compatible with [Cukei's Casual Preloader](https://github.com/cueki/casual-pre-loader), if Voodoo-Cursed Souls are disabled it is recommended to use the Casual Preloader to avoid errors/crashes.
