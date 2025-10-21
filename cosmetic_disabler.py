@@ -484,13 +484,24 @@ root = tk.Tk()
 root.title("TF2 Cosmetic Disabler")
 root.geometry("650x750")
 icon_path = resource_path(r"tf2_ico.ico")
+small_png_path = resource_path(r"16x16.png")
+big_png_path = resource_path(r"32x32.png")
 
 if Path(icon_path).exists():
     try:
         root.iconbitmap(icon_path)
     except Exception:
         # iconbitmap doesn't work with .ico files on Linux
+        try:
+            if sys.platform.startswith("linux"):
+                if small_png_path.exists() and big_png_path.exists():
+                    large_icon = tk.PhotoImage(file = big_png_path)
+                    small_icon = tk.PhotoImage(file = small_png_path)
+                    root.iconphoto(False, large_icon, small_icon)
+        except Exception:
+            pass
         pass
+
 root.protocol("WM_DELETE_WINDOW", on_close)
 
 # Menu bar
