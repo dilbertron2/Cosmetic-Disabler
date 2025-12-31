@@ -98,6 +98,7 @@ items_game_path = Path("tf/scripts/items/items_game.txt")
 tf2_dir = Path("")
 tf2_misc_dir = Path("tf/tf2_misc_dir.vpk")
 target_cosmetics = []
+target_cosmetic_names = []
 all_cosmetics = []
 all_names = []
 bodygroups_to_replace = {"hat", "headphones", "hands", "shoes", "shoes_socks", "head", "whole_head", "backpack", "dogtags", "grenades", "bullets"}
@@ -227,6 +228,16 @@ def get_custom_dir(): # Prompt user for custom TF2 directory
         load_cosmetics()
     else:
         messagebox.showerror("Error", "Invalid TF2 directory. 'tf/scripts/items/items_game.txt' not found!")
+
+def update_target_cosmetic_name_list():
+    global target_cosmetic_names
+
+    target_cosmetic_names.clear()
+
+    for cosmetic in target_cosmetics:
+        name = cosmetic.get("name", "")
+        if name:
+            target_cosmetic_names.append(name)
 
 
 def disable_selected(): # Run when 'Disable Selected' is activated
@@ -474,7 +485,6 @@ def load_cosmetics(): # Load all cosmetics from items_game.txt
     all_cosmetics = find_cosmetics((tf2_dir / items_game_path), tf2_misc_dir)
 
     all_names = sorted([c["name"] for c in all_cosmetics if c.get("name")], key=str.lower)
-    all_names = set(all_names) # Turn all_names into set for performance
     update_cosmetic_list()
 
 
@@ -487,25 +497,33 @@ def disable_all_cosmetics():
             if cosmetic["name"] not in existing:
                 target_cosmetics.append(cosmetic)
 
+        update_target_cosmetic_name_list()
         update_disabled_list()
 
 
-def update_cosmetic_list(*args): # Update enabled cosmetics list
+
+def update_cosmetic_list(*args): # Update enabled cosmetics list whenever search changes OR cosmetics disabled
     search_text = search_var.get().lower()
+    search_text2 = search_text.replace("u", "Ü").lower()
     cosmetic_listbox.delete(0, tk.END)
     for name in all_names:
-        if search_text in name.lower():
-            cosmetic_listbox.insert(tk.END, name)
+        if search_text in name.lower() or search_text2 in name.lower():
+            if not name in target_cosmetic_names:
+                cosmetic_listbox.insert(tk.END, name)
 
 
 def update_disabled_list(*args): # Update disabled cosmetics list
     search_text = search_var_disabled.get().lower()
+    search_text2 = search_text.replace("u", "Ü").lower()
     disabled_listbox.delete(0, tk.END)
 
     for cosmetic in sorted(target_cosmetics, key=lambda x: x.get("name", "").lower()):
         name = cosmetic.get("name", "")
-        if search_text in name.lower():
+        if search_text in name.lower() or search_text2 in name.lower():
             disabled_listbox.insert(tk.END, name)
+
+    update_target_cosmetic_name_list()
+    update_cosmetic_list()
 
 def update_disabled_list_no_search(*args): # Update disabled cosmetics list without search check
     disabled_listbox.delete(0, tk.END)
@@ -519,7 +537,7 @@ def clear_target_cosmetics():
     answer = messagebox.askyesno("Clear Disabled Cosmetics", f"Are you sure you want to clear your disabled cosmetics?")
     if answer:
         target_cosmetics = []
-        update_disabled_list_no_search()
+        update_disabled_list()
 
 def open_window(window: tk.Toplevel):
     window.state("normal")
@@ -546,7 +564,21 @@ def get_update_db():
 
 update_db_contents = get_update_db()
 
-def standardize_update_names():
+def standardize_update_names(): # The database has some update inconsistencies, lets fix that
+    update_map = { # Scream Fortress update map
+        "Scream Fortress VII": "Scream Fortress 2015",
+        "Scream Fortress VIII": "Scream Fortress 2016",
+        "Scream Fortress X": "Scream Fortress 2018",
+        "Scream Fortress XI": "Scream Fortress 2019",
+        "Scream Fortress XII": "Scream Fortress 2020",
+        "Scream Fortress XIII": "Scream Fortress 2021",
+        "Scream Fortress XIV": "Scream Fortress 2022",
+        "Scream Fortress XV": "Scream Fortress 2023",
+        "Scream Fortress XVI": "Scream Fortress 2024",
+        "Scream Fortress XVII": "Scream Fortress 2025"
+    }
+
+
     for cosmetic in update_db_contents:
         update = cosmetic.get("update", "")
 
@@ -554,7 +586,16 @@ def standardize_update_names():
             cosmetic.update({"update":"Sniper vs. Spy Update"})
         elif update == "Invasion Update":
             cosmetic.update({"update":"Invasion Community Update"})
-    #TODO: ADD THE REST OF THE UPDATE THINGS HERE, JUST TESTING FOR NOW
+
+        for numeral, full_update in update_map.items(): # Loop for Scream Fortress stuff
+            if numeral in update:
+                cosmetic.update({"update":full_update})
+
+        name = cosmetic.get("hat", "")
+        if "Ãœ" in name:
+            new_name = name.replace("Ãœ", "Ü")
+            cosmetic.update({"hat":new_name})
+
 
 def populate_update_box():
     tf2_updatesvar = tk.StringVar(value=tf2_updates)
@@ -778,5 +819,6 @@ else:
         load_cosmetics()
         messagebox.showinfo("TF2 Auto-Detected", f"TF2 directory automatically detected at:\n{tf2_dir}")
 
+standardize_update_names()
 check_for_update()
 root.mainloop()
