@@ -63,15 +63,36 @@ import shutil
 import atexit
 from pathlib import Path
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, Menu
+from tkinter import ttk, filedialog, messagebox
 import threading
 import requests
 from packaging import version
 import webbrowser
+import csv
+
 # Variables & paths
 
 CURRENT_VERSION = "1.1.1"
 REPO = "dilbertron2/Cosmetic-Disabler"
+
+tf2_updates = ["Sniper vs. Spy Update", "Classless Update", "Haunted Hallowe'en Special",
+               "Very Scary Halloween Special", "Mac Update", "First Community Contribution Update",
+               "Second Community Contribution Update", "Mann-Conomy Update", "Scream Fortress Update",
+               "Replay Update", "Australian Christmas", "Ãœber Update", "Shogun Pack",
+               "Third Community Contribution Update", "Japan Charity Bundle", "Dr. Grordbort's Victory Pack Update",
+               "Summer Camp Sale", "Manno-Technology Bundle", "Manniversary Update & Sale", "Australian Christmas 2011",
+               "Mann vs. Machine Update", "Pyromania Update", "Triad Pack", "First Workshop Content Pack",
+               "Mecha Update", "Spectral Halloween Special", "Two Cities Update", "Love & War Update",
+               "Meet Your Match Update", "Jungle Inferno Update", "Robotic Boogaloo", "Second Workshop Content Pack",
+               "Summer Event 2013", "Fall Event 2013", "Scream Fortress 2013", "Smissmas 2013", "Strongbox Pack",
+               "Limited Late Summer Pack", "Scream Fortress 2014", "End of the Line Update", "Smissmas 2014",
+               "Gun Mettle Update", "Invasion Community Update", "Scream Fortress 2015", "Tough Break Update",
+               "Mayflower Pack", "Scream Fortress 2016", "Smissmas 2016", "Rainy Day Pack", "Smissmas 2017",
+               "Blue Moon Pack", "Scream Fortress 2018", "Smissmas 2018", "Summer 2019 Pack", "Scream Fortress 2019",
+               "Smissmas 2019", "Summer 2020 Pack", "Scream Fortress 2020", "Smissmas 2020", "Summer 2021 Pack",
+               "Scream Fortress 2021", "Smissmas 2021", "Summer 2022 Pack", "Scream Fortress 2022", "Smissmas 2022",
+               "Summer 2023 Pack", "Scream Fortress 2023", "Smissmas 2023", "Summer 2024 Pack", "Scream Fortress 2024",
+               "Smissmas 2024", "Summer 2025 Pack", "Scream Fortress 2025", "Smissmas 2025"]
 
 items_game_path = Path("tf/scripts/items/items_game.txt")
 tf2_dir = Path("")
@@ -90,6 +111,8 @@ program_data = Path().absolute() / "Cosmetic Disabler Data"
 cosmetic_data = program_data / "data2"
 replacement_folder = Path().absolute() / "Replacement Files"
 zombie_skins = replacement_folder / "zombie_skins/materials/models/player"
+update_db = Path().absolute() / "database.csv"
+update_db_contents = None
 
 for folder in (mod_folder, program_data):
     folder.mkdir(exist_ok=True)
@@ -206,7 +229,7 @@ def get_custom_dir(): # Prompt user for custom TF2 directory
         messagebox.showerror("Error", "Invalid TF2 directory. 'tf/scripts/items/items_game.txt' not found!")
 
 
-def disable_selected(): # Run when cosmetic in enabled list is interacted with
+def disable_selected(): # Run when 'Disable Selected' is activated
     selections = cosmetic_listbox.curselection()
     if not selections:
         return
@@ -224,7 +247,7 @@ def disable_selected(): # Run when cosmetic in enabled list is interacted with
     update_disabled_list()
 
 
-def enable_selected(): # Run when cosmetic in disabled list is interacted with
+def enable_selected(): # Run when 'Enable Selected' is activated
     selections = disabled_listbox.curselection()
     if not selections:
         return
@@ -294,7 +317,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
         bodygroups = cosmetic.get("bodygroups", [])
         name = cosmetic.get("name", "")
 
-        if name == "grandmaster" and paths:
+        if name == "grandmaster" and paths: # Special case for the Grandmaster hat (thanks valve)
             for path in paths:
                 filename = path.stem
                 last_word = filename.split("_")[-1]
@@ -332,7 +355,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
             if "voodoo-cursed" in name: # Check if cosmetic is a zombie skin
                 replacement_model_type = "zombie"
 
-            if isinstance(tf_class, str):
+            if isinstance(tf_class, str): # Replacement model type check
                 if tf_class == "scout":  # Enforcing valid bodygroup for Scout
                     if replacement_model_type == "shoes":
 
@@ -451,6 +474,7 @@ def load_cosmetics(): # Load all cosmetics from items_game.txt
     all_cosmetics = find_cosmetics((tf2_dir / items_game_path), tf2_misc_dir)
 
     all_names = sorted([c["name"] for c in all_cosmetics if c.get("name")], key=str.lower)
+    all_names = set(all_names) # Turn all_names into set for performance
     update_cosmetic_list()
 
 
@@ -497,6 +521,110 @@ def clear_target_cosmetics():
         target_cosmetics = []
         update_disabled_list_no_search()
 
+def open_window(window: tk.Toplevel):
+    window.state("normal")
+
+def minimise_window(window: tk.Toplevel):
+    window.withdraw()
+
+# FUNCTIONS FOR CATEGORISING COSMETICS BY UPDATE
+def get_update_db():
+    subset_data = []
+
+    with open(update_db, 'r') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=';')
+
+        for row in reader:
+            filtered_entry = {
+                'hat': row['hat'],
+                'update': row['update']
+            }
+            subset_data.append(filtered_entry)
+    subset_data.pop(0) # Remove placeholder hat from DB
+
+    return subset_data
+
+update_db_contents = get_update_db()
+
+def standardize_update_names():
+    for cosmetic in update_db_contents:
+        update = cosmetic.get("update", "")
+
+        if update == "Sniper vs. Spy":
+            cosmetic.update({"update":"Sniper vs. Spy Update"})
+        elif update == "Invasion Update":
+            cosmetic.update({"update":"Invasion Community Update"})
+    #TODO: ADD THE REST OF THE UPDATE THINGS HERE, JUST TESTING FOR NOW
+
+def populate_update_box():
+    tf2_updatesvar = tk.StringVar(value=tf2_updates)
+    updates_listbox.config(listvariable=tf2_updatesvar)
+
+
+def get_cosmetics_from_updates():
+    cosmetics_in_target_updates = []
+    selections = updates_listbox.curselection()
+    update_list = [updates_listbox.get(i) for i in selections]
+
+    if isinstance(update_list, list):
+        for cosmetic in update_db_contents:
+            update = cosmetic.get("update", "no update")
+            name = cosmetic.get("hat", "no name").lower()
+            if update in update_list:
+                cosmetics_in_target_updates.append(name)
+
+    return set(cosmetics_in_target_updates)
+
+
+def disable_selected_updates(): # Run when 'Disable Selected' is activated
+    cosmetics_in_update = get_cosmetics_from_updates()
+
+    # existing_names = [cosmetic["name"] for cosmetic in target_cosmetics]
+    existing_names = []
+
+    for cosmetic in target_cosmetics:
+        cos_name = cosmetic.get("name", "").lower()
+        print(f"cos_name: {cos_name}")
+        print(f"cos in update: {cosmetics_in_update}")
+        if cos_name:
+            if cos_name in cosmetics_in_update:
+                existing_names.append(cos_name)
+
+
+    print(f"existing names: {existing_names}")
+
+    new_cosmetics2 = []
+    for cosmetic in cosmetics_in_update:
+        print(f"cosmetic name: {cosmetic}")
+
+        if cosmetic in existing_names:
+            continue
+
+        for target_cosmetic in all_cosmetics:
+
+            target_cos_name = target_cosmetic.get("name", "").lower()
+            if cosmetic == target_cos_name:
+
+                new_cosmetics2.append(target_cosmetic)
+                break
+
+    target_cosmetics.extend(new_cosmetics2)
+
+    update_disabled_list()
+
+
+def enable_selected_updates(): # Run when 'Enable Selected' is activated
+    selections = disabled_listbox.curselection()
+    if not selections:
+        return
+
+    selected_names = {disabled_listbox.get(i) for i in selections}
+
+    global target_cosmetics
+    target_cosmetics = [cosmetic for cosmetic in target_cosmetics if cosmetic.get("name") not in selected_names]
+
+    update_disabled_list()
+
 # GUI setup
 root = tk.Tk()
 root.title("TF2 Cosmetic Disabler")
@@ -522,17 +650,6 @@ if Path(icon_path).exists():
 
 root.protocol("WM_DELETE_WINDOW", on_close)
 
-# Menu bar
-# menubar = Menu(root)
-# cosmetics_menu = Menu(menubar, tearoff=0)
-# cosmetics_menu.add_command(label="Import Cosmetic List", command=disable_all_cosmetics)
-# cosmetics_menu.add_command(label="Export Cosmetic List", command=clear_target_cosmetics)
-# menubar.add_cascade(label="Cosmetics", menu=cosmetics_menu)
-#
-# spacer = tk.Frame(root, height=6, bg="#f0f0f0")  # same color as default background
-# spacer.pack(fill="x")
-#
-# root.config(menu=menubar)
 
 # TF2 dir selection
 frame_top = ttk.Frame(root)
@@ -555,6 +672,34 @@ search_entry.pack(side="left")
 
 # Disable Selected Button
 ttk.Button(search_frame, text="Disable Selected", command=lambda: disable_selected()).pack(side="left", padx=5)
+
+# Disable Based On Update
+
+# Window Setup
+disable_update_win = tk.Toplevel(root)
+disable_update_win.geometry("260x600")
+disable_update_win.title("Disable Based On Update")
+disable_update_win.protocol("WM_DELETE_WINDOW", lambda: minimise_window(disable_update_win))
+minimise_window(disable_update_win)
+
+DU_frame = ttk.Frame(disable_update_win)
+DU_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+DU_scrollbar = ttk.Scrollbar(DU_frame, orient="vertical")
+DU_scrollbar.pack(side="right", fill="y")
+updates_listbox = tk.Listbox(DU_frame, yscrollcommand=DU_scrollbar.set, selectmode=tk.EXTENDED)
+updates_listbox.pack(fill="both", expand=True)
+populate_update_box()
+DU_scrollbar.config(command=updates_listbox.yview)
+
+DU_button_frame = ttk.Frame(disable_update_win)
+DU_button_frame.pack(fill="x", padx=10, pady=5)
+
+ttk.Button(DU_button_frame, text="Disable", command=lambda: disable_selected_updates()).pack(pady=5, side="left")
+ttk.Button(DU_button_frame, text="Enable", command=lambda: print("enable pressed")).pack(pady=5, side="right")
+
+# Button
+ttk.Button(search_frame, text="Disable Based on Update", command=lambda: open_window(disable_update_win)).pack(side="left", padx=5)
 
 # Disable All Button
 ttk.Button(search_frame, text="Disable All Cosmetics", command=disable_all_cosmetics).pack(side="right", padx=5)
