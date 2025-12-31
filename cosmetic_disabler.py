@@ -76,23 +76,23 @@ CURRENT_VERSION = "1.1.1"
 REPO = "dilbertron2/Cosmetic-Disabler"
 
 tf2_updates = ["Sniper vs. Spy Update", "Classless Update", "Haunted Hallowe'en Special",
-               "Very Scary Halloween Special", "Mac Update", "First Community Contribution Update",
-               "Second Community Contribution Update", "Mann-Conomy Update", "Scream Fortress Update",
-               "Replay Update", "Australian Christmas", "Ãœber Update", "Shogun Pack",
-               "Third Community Contribution Update", "Japan Charity Bundle", "Dr. Grordbort's Victory Pack Update",
-               "Summer Camp Sale", "Manno-Technology Bundle", "Manniversary Update & Sale", "Australian Christmas 2011",
-               "Mann vs. Machine Update", "Pyromania Update", "Triad Pack", "First Workshop Content Pack",
-               "Mecha Update", "Spectral Halloween Special", "Two Cities Update", "Love & War Update",
-               "Meet Your Match Update", "Jungle Inferno Update", "Robotic Boogaloo", "Second Workshop Content Pack",
-               "Summer Event 2013", "Fall Event 2013", "Scream Fortress 2013", "Smissmas 2013", "Strongbox Pack",
-               "Limited Late Summer Pack", "Scream Fortress 2014", "End of the Line Update", "Smissmas 2014",
-               "Gun Mettle Update", "Invasion Community Update", "Scream Fortress 2015", "Tough Break Update",
-               "Mayflower Pack", "Scream Fortress 2016", "Smissmas 2016", "Rainy Day Pack", "Smissmas 2017",
-               "Blue Moon Pack", "Scream Fortress 2018", "Smissmas 2018", "Summer 2019 Pack", "Scream Fortress 2019",
-               "Smissmas 2019", "Summer 2020 Pack", "Scream Fortress 2020", "Smissmas 2020", "Summer 2021 Pack",
-               "Scream Fortress 2021", "Smissmas 2021", "Summer 2022 Pack", "Scream Fortress 2022", "Smissmas 2022",
-               "Summer 2023 Pack", "Scream Fortress 2023", "Smissmas 2023", "Summer 2024 Pack", "Scream Fortress 2024",
+               "First Community Contribution Update", "Second Community Contribution Update",
+               "Mac Update", "Mann-Conomy Update", "Scream Fortress Update", "Australian Christmas",
+               "Shogun Pack", "Japan Charity Bundle", "Third Community Contribution Update",
+               "Replay Update", "Über Update", "Summer Camp Sale", "Dr. Grordbort's Victory Pack Update",
+               "Manno-Technology Bundle", "Manniversary Update & Sale", "Very Scary Halloween Special",
+               "Australian Christmas 2011", "Pyromania Update", "Triad Pack", "Mann vs. Machine Update",
+               "First Workshop Content Pack", "Spectral Halloween Special", "Mecha Update", "Robotic Boogaloo",
+               "Second Workshop Content Pack", "Summer Event 2013", "Fall Event 2013", "Scream Fortress 2013",
+               "Two Cities Update", "Smissmas 2013", "Strongbox Pack", "Love & War Update", "Limited Late Summer Pack",
+               "Scream Fortress 2014", "End of the Line Update", "Smissmas 2014", "Gun Mettle Update", "Invasion Community Update",
+               "Scream Fortress 2015", "Tough Break Update", "Mayflower Pack", "Meet Your Match Update", "Scream Fortress 2016",
+               "Smissmas 2016", "Rainy Day Pack", "Jungle Inferno Update", "Smissmas 2017", "Blue Moon Pack", "Scream Fortress 2018",
+               "Smissmas 2018", "Summer 2019 Pack", "Scream Fortress 2019", "Smissmas 2019", "Summer 2020 Pack", "Scream Fortress 2020",
+               "Smissmas 2020", "Summer 2021 Pack", "Scream Fortress 2021", "Smissmas 2021", "Summer 2022 Pack", "Scream Fortress 2022",
+               "Smissmas 2022", "Summer 2023 Pack", "Scream Fortress 2023", "Smissmas 2023", "Summer 2024 Pack", "Scream Fortress 2024",
                "Smissmas 2024", "Summer 2025 Pack", "Scream Fortress 2025", "Smissmas 2025"]
+engy_cosmetics = ["antlers", "the merc's muffler"]
 
 items_game_path = Path("tf/scripts/items/items_game.txt")
 tf2_dir = Path("")
@@ -101,6 +101,7 @@ target_cosmetics = []
 target_cosmetic_names = []
 all_cosmetics = []
 all_names = []
+all_names_by_date = []
 bodygroups_to_replace = {"hat", "headphones", "hands", "shoes", "shoes_socks", "head", "whole_head", "backpack", "dogtags", "grenades", "bullets"}
 bodygroups_to_always_replace = {"hands", "shoes_socks", "shoes", "head", "whole_head", "backpack", "grenades", "bullets"}
 tf_classes = {"sniper", "soldier", "engineer", "scout", "demo", "heavy", "medic", "pyro", "spy"}
@@ -328,7 +329,8 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
         bodygroups = cosmetic.get("bodygroups", [])
         name = cosmetic.get("name", "")
 
-        if name == "grandmaster" and paths: # Special case for the Grandmaster hat (thanks valve)
+        # This is where we do the HORRIBLE hard-coded behaviour for fucky cosmetics
+        if name == "grandmaster" and paths:
             for path in paths:
                 filename = path.stem
                 last_word = filename.split("_")[-1]
@@ -338,6 +340,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
 
 
         for path in paths:
+            print(f"START OF VPK CREATION: {path}")
             cosmetic_folder = (mod_folder / path).parent
             path = Path(path) # Convert path string to Path object
             if cosmetic_folder not in created_dirs:
@@ -357,7 +360,6 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                             if not tf_class:
                                 tf_class = next((sub for sub in tf_classes if sub in filename_parts[0]), None) # Check first word
                 if not tf_class:
-                    print(name)
                     tf_class = "all_class_one_model"
             else:
                 tf_class = next((sub for sub in tf_classes if sub in str(path)), None)
@@ -438,6 +440,8 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                                     (mod_folder / create_folder).mkdir(parents=True, exist_ok=True)
                                     shutil.copy(file, mod_folder / f"materials/models/player/{tf_class}/{filename}{ext}")
 
+    print(f"paths to copy: {paths_to_copy}")
+
     # Batch writing data to disk
     for folder in created_dirs:
         folder.mkdir(parents=True, exist_ok=True)
@@ -477,7 +481,7 @@ def start_vpk_creation():
     threading.Thread(target=task, daemon=True).start()
 
 def load_cosmetics(): # Load all cosmetics from items_game.txt
-    global all_cosmetics, all_names
+    global all_cosmetics, all_names, all_names_by_date
 
     if not tf2_dir.exists():
         return
@@ -485,7 +489,9 @@ def load_cosmetics(): # Load all cosmetics from items_game.txt
     all_cosmetics = find_cosmetics((tf2_dir / items_game_path), tf2_misc_dir)
 
     all_names = sorted([c["name"] for c in all_cosmetics if c.get("name")], key=str.lower)
-    update_cosmetic_list()
+    all_names_by_date = [c["name"] for c in all_cosmetics if c.get("name")]
+    #update_cosmetic_list()
+    dropdown_box_change()
 
 
 def disable_all_cosmetics():
@@ -523,7 +529,8 @@ def update_disabled_list(*args): # Update disabled cosmetics list
             disabled_listbox.insert(tk.END, name)
 
     update_target_cosmetic_name_list()
-    update_cosmetic_list()
+    #update_cosmetic_list()
+    dropdown_box_change()
 
 def update_disabled_list_no_search(*args): # Update disabled cosmetics list without search check
     disabled_listbox.delete(0, tk.END)
@@ -586,13 +593,16 @@ def standardize_update_names(): # The database has some update inconsistencies, 
             cosmetic.update({"update":"Sniper vs. Spy Update"})
         elif update == "Invasion Update":
             cosmetic.update({"update":"Invasion Community Update"})
+        elif "Ãœ" in update:
+            cosmetic.update({"update":update.replace("Ãœ", "Ü")})
 
         for numeral, full_update in update_map.items(): # Loop for Scream Fortress stuff
             if numeral in update:
                 cosmetic.update({"update":full_update})
 
         name = cosmetic.get("hat", "")
-        if "Ãœ" in name:
+
+        if "Ãœ" in name: # Fix broken formatting on cosmetics that use "Ü"
             new_name = name.replace("Ãœ", "Ü")
             cosmetic.update({"hat":new_name})
 
@@ -625,18 +635,14 @@ def disable_selected_updates(): # Run when 'Disable Selected' is activated
 
     for cosmetic in target_cosmetics:
         cos_name = cosmetic.get("name", "").lower()
-        print(f"cos_name: {cos_name}")
-        print(f"cos in update: {cosmetics_in_update}")
         if cos_name:
             if cos_name in cosmetics_in_update:
                 existing_names.append(cos_name)
 
 
-    print(f"existing names: {existing_names}")
 
     new_cosmetics2 = []
     for cosmetic in cosmetics_in_update:
-        print(f"cosmetic name: {cosmetic}")
 
         if cosmetic in existing_names:
             continue
@@ -655,16 +661,33 @@ def disable_selected_updates(): # Run when 'Disable Selected' is activated
 
 
 def enable_selected_updates(): # Run when 'Enable Selected' is activated
-    selections = disabled_listbox.curselection()
-    if not selections:
-        return
-
-    selected_names = {disabled_listbox.get(i) for i in selections}
-
     global target_cosmetics
-    target_cosmetics = [cosmetic for cosmetic in target_cosmetics if cosmetic.get("name") not in selected_names]
+    selected_names = get_cosmetics_from_updates()
+
+    target_cosmetics = [cosmetic for cosmetic in target_cosmetics if cosmetic.get("name").lower() not in selected_names]
 
     update_disabled_list()
+
+
+def dropdown_box_change(*args):
+    try:
+        selection = cosmetic_dropdown_selection.get()
+        if cosmetic_listbox:
+            if selection == "Alphabetical":
+                update_cosmetic_list()
+            elif selection == "Date":
+                search_text = search_var.get().lower()
+                search_text2 = search_text.replace("u", "Ü").lower()
+                cosmetic_listbox.delete(0, tk.END)
+                for name in all_names_by_date:
+                    if search_text in name.lower() or search_text2 in name.lower():
+                        if not name in target_cosmetic_names:
+                            cosmetic_listbox.insert(tk.END, name)
+
+    except NameError:
+        print("cosmetic_listbox not initialised, this should only trigger on the first execution")
+
+
 
 # GUI setup
 root = tk.Tk()
@@ -704,12 +727,19 @@ frame_general.pack(fill="both", expand=True, padx=10, pady=5)
 
 # Search bar
 search_var = tk.StringVar()
-search_var.trace_add("write", update_cosmetic_list)
+search_var.trace_add("write", dropdown_box_change)
 search_frame = ttk.Frame(frame_general)
 search_frame.pack(fill="x", padx=10, pady=5)
 ttk.Label(search_frame, text="Search:").pack(side="left", padx=(0, 5))
 search_entry = ttk.Entry(search_frame, textvariable=search_var, width=30)
 search_entry.pack(side="left")
+
+# Drop-down box
+cosmetic_dropdown_selection = tk.StringVar()
+cosmetic_dropdown_selection.trace_add("write", dropdown_box_change)
+cosmetic_dropdown = ttk.Combobox(search_frame, values=["Alphabetical", "Date"], state="readonly", textvariable=cosmetic_dropdown_selection, width=12)
+cosmetic_dropdown.pack(side="left", padx=5)
+cosmetic_dropdown_selection.set("Alphabetical")
 
 # Disable Selected Button
 ttk.Button(search_frame, text="Disable Selected", command=lambda: disable_selected()).pack(side="left", padx=5)
@@ -737,10 +767,9 @@ DU_button_frame = ttk.Frame(disable_update_win)
 DU_button_frame.pack(fill="x", padx=10, pady=5)
 
 ttk.Button(DU_button_frame, text="Disable", command=lambda: disable_selected_updates()).pack(pady=5, side="left")
-ttk.Button(DU_button_frame, text="Enable", command=lambda: print("enable pressed")).pack(pady=5, side="right")
+ttk.Button(DU_button_frame, text="Enable", command=lambda: enable_selected_updates()).pack(pady=5, side="right")
 
-# Button
-ttk.Button(search_frame, text="Disable Based on Update", command=lambda: open_window(disable_update_win)).pack(side="left", padx=5)
+# Import/Export list
 
 # Disable All Button
 ttk.Button(search_frame, text="Disable All Cosmetics", command=disable_all_cosmetics).pack(side="right", padx=5)
@@ -785,6 +814,8 @@ frame_bottom.pack(fill="x", pady=10)
 ttk.Button(frame_bottom, text="Save", command=save_cosmetics).pack(side="left", padx=10)
 create_vpk_button = ttk.Button(frame_bottom, text="Create VPK", command=start_vpk_creation)
 create_vpk_button.pack(side="left", padx=10)
+ttk.Button(frame_bottom, text="Modify By Update", command=lambda: open_window(disable_update_win)).pack(side="left", padx=10)
+#ttk.Button(frame_bottom, text="Import/Export List", command=lambda: open_window(disable_update_win)).pack(side="left", padx=10)
 quit_button = ttk.Button(frame_bottom, text="Quit", command=on_close)
 quit_button.pack(side="right", padx=10)
 

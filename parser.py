@@ -158,7 +158,7 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                 used_by_classes = item.get("used_by_classes")  # Get "used_by_classes" and store found classes
                 if isinstance(used_by_classes, dict):
                     for tf_class in used_by_classes:
-                        if tf_class == "demoman":
+                        if tf_class.lower() == "demoman":
                             valid_classes.append("demo")
                         else:
                             valid_classes.append(tf_class)
@@ -225,7 +225,7 @@ def find_cosmetics(file_path: Path, misc_dir_location):
                 if item.get("hidden") != "1":
                     if prefab not in ("base_cosmetic_case", "base_keyless_cosmetic_case") and name not in (
                             "Glitched Circuit Board", "Damaged Capacitor", "Web Easteregg Medal",
-                            "Tournament Medal (Armory)", "Voodoo-Cursed Soul (Armory)"):
+                            "Tournament Medal (Armory)", "Voodoo-Cursed Soul (Armory)") and "GateBot" not in name:
 
                         # Just before we add to cosmetic list, check if loc string exists, if it does, replace name with name from loc file
                         if item_loc_name:
