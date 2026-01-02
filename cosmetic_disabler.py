@@ -143,7 +143,7 @@ def check_for_update():
         latest_version = version.parse(latest)
         current_version = version.parse(CURRENT_VERSION)
         if latest_version > current_version:
-            answer = messagebox.askyesno("New Version Available!", f"A new version of the Cosmetic Disabler is available!\n\nWould you like to go to the download page?\n\nCurrent Version: {current_version}\nLatest Version:{latest_version}")
+            answer = messagebox.askyesno("New Version Available!", f"A new version of the Cosmetic Disabler is available!\n\nWould you like to go to the download page?\n\nCurrent Version: {current_version}\nLatest Version: {latest_version}")
             if answer:
                 webbrowser.open(f"https://gamebanana.com/tools/20969")
     except Exception as e:
@@ -450,7 +450,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                                     (mod_folder / create_folder).mkdir(parents=True, exist_ok=True)
                                     shutil.copy(file, mod_folder / f"materials/models/player/{tf_class}/{filename}{ext}")
 
-    print(f"paths to copy: {paths_to_copy}")
+    #print(f"paths to copy: {paths_to_copy}")
 
     # Batch writing data to disk
     for folder in created_dirs:
@@ -473,9 +473,9 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
     quit_button.config(state="normal")
     if Path("./Custom-Cosmetic-Disabler.vpk").exists(): # Check if VPK was created successfully
         vpk_path = Path("./Custom-Cosmetic-Disabler.vpk").resolve()
-        messagebox.showinfo("Done", f"VPK file created successfully! Generated at\n{vpk_path}")
+        messagebox.showinfo("Done!", f"VPK file created successfully! Generated at\n{vpk_path}\n\nThank you for using this program created by Dilbertron!")
         if zombie_skin_detected:
-            messagebox.showwarning("WARNING", "You have disabled atleast one voodoo soul cosmetic.\n\nIn order for them to be disabled correctly in sv_pure 1/2 servers (and Casual) you will have to use Cukei's Casual Preloader.\n\n NOT doing so risks errors/crashes!")
+            messagebox.showwarning("WARNING", "You have disabled atleast one voodoo soul cosmetic.\n\nIn order for them to be disabled correctly in sv_pure 1/2 servers (and Casual) you will have to use a Casual preloader.\n\n NOT doing so risks errors/crashes!")
     else:
         messagebox.showerror("VPK Failed", "VPK file failed to generate! Have you disabled atleast one cosmetic?")
 
@@ -565,6 +565,12 @@ def minimise_window(window: tk.Toplevel):
 
 # FUNCTIONS FOR CATEGORISING COSMETICS BY UPDATE
 def get_update_db():
+    global tf2_updates
+
+    if not update_db.exists():
+        tf2_updates = ["database.csv", "not found.", "please place", "the file", "inside of", "this program's", "root folder"]
+        return None
+
     subset_data = []
 
     with open(update_db, 'r') as csvfile:
@@ -583,6 +589,10 @@ def get_update_db():
 update_db_contents = get_update_db()
 
 def standardize_update_names(): # The database has some update inconsistencies, lets fix that
+
+    if not update_db.exists():
+        return
+
     update_map = { # Scream Fortress update map
         "Scream Fortress VII": "Scream Fortress 2015",
         "Scream Fortress VIII": "Scream Fortress 2016",
