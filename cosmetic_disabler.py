@@ -72,7 +72,7 @@ import csv
 
 # Variables & paths
 
-CURRENT_VERSION = "1.1.1"
+CURRENT_VERSION = "1.2.0"
 REPO = "dilbertron2/Cosmetic-Disabler"
 
 tf2_updates = ["Sniper vs. Spy Update", "Classless Update", "Haunted Hallowe'en Special",
@@ -92,7 +92,7 @@ tf2_updates = ["Sniper vs. Spy Update", "Classless Update", "Haunted Hallowe'en 
                "Smissmas 2020", "Summer 2021 Pack", "Scream Fortress 2021", "Smissmas 2021", "Summer 2022 Pack", "Scream Fortress 2022",
                "Smissmas 2022", "Summer 2023 Pack", "Scream Fortress 2023", "Smissmas 2023", "Summer 2024 Pack", "Scream Fortress 2024",
                "Smissmas 2024", "Summer 2025 Pack", "Scream Fortress 2025", "Smissmas 2025"]
-engy_cosmetics = ["antlers", "the merc's muffler"]
+engy_cosmetics = ["antlers", "merc's muffler"]
 
 items_game_path = Path("tf/scripts/items/items_game.txt")
 tf2_dir = Path("")
@@ -140,8 +140,10 @@ def get_latest_release(repo):
 def check_for_update():
     try:
         latest = get_latest_release(REPO)
-        if version.parse(latest) > version.parse(CURRENT_VERSION):
-            answer = messagebox.askyesno("New Version Available!", "A new version of the Cosmetic Disabler is available!\n\nWould you like to go to the download page?")
+        latest_version = version.parse(latest)
+        current_version = version.parse(CURRENT_VERSION)
+        if latest_version > current_version:
+            answer = messagebox.askyesno("New Version Available!", f"A new version of the Cosmetic Disabler is available!\n\nWould you like to go to the download page?\n\nCurrent Version: {current_version}\nLatest Version:{latest_version}")
             if answer:
                 webbrowser.open(f"https://gamebanana.com/tools/20969")
     except Exception as e:
@@ -348,6 +350,14 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                 created_dirs.add(cosmetic_folder)
 
             main, ext, filename = path.with_suffix(''), path.suffix, path.stem
+
+            # Let's modify main if current cosmetic has stupid internal filename
+            if name in engy_cosmetics:
+                parent = main.parent
+                new_filename = main.stem.replace("engineer", "engy")
+                new_path = parent / f"{new_filename}"
+                main = new_path
+
             filename_parts = filename.split("_")
 
             if "all_class" in str(main): # If the cosmetic is all_class, check for class in last word of filename instead
@@ -548,6 +558,7 @@ def clear_target_cosmetics():
 
 def open_window(window: tk.Toplevel):
     window.state("normal")
+    window.lift()
 
 def minimise_window(window: tk.Toplevel):
     window.withdraw()
@@ -687,12 +698,32 @@ def dropdown_box_change(*args):
     except NameError:
         print("cosmetic_listbox not initialised, this should only trigger on the first execution")
 
+def disabled_dropdown_box_change(*args):
+    try:
+        selection = disabled_dropdown_selection.get()
+        if disabled_listbox:
+            if selection == "Alphabetical":
+                update_disabled_list()
+            elif selection == "Date":
+                search_text = search_var_disabled.get().lower()
+                search_text2 = search_text.replace("u", "Ü").lower()
+                disabled_listbox.delete(0, tk.END)
 
+                for cos_name in all_names_by_date:
+                    if cos_name in target_cosmetic_names:
+                        if search_text in cos_name.lower() or search_text2 in cos_name.lower():
+                            disabled_listbox.insert(tk.END, cos_name)
+
+                update_target_cosmetic_name_list()
+                dropdown_box_change()
+
+    except NameError:
+        print("disabled_listbox not initialised, this should only trigger on the first execution")
 
 # GUI setup
 root = tk.Tk()
 root.title("TF2 Cosmetic Disabler")
-root.geometry("650x750")
+root.geometry("670x750")
 icon_path = resource_path(r"tf2_ico.ico")
 small_png_path = resource_path(r"16x16.png")
 big_png_path = resource_path(r"32x32.png")
@@ -741,6 +772,16 @@ cosmetic_dropdown = ttk.Combobox(search_frame, values=["Alphabetical", "Date"], 
 cosmetic_dropdown.pack(side="left", padx=5)
 cosmetic_dropdown_selection.set("Alphabetical")
 
+def list_sorting_help():
+    list_sorting_info_button.config(state="disabled")
+    disabled_list_sorting_info_button.config(state="disabled")
+    messagebox.showinfo("Information", "The date sort is not fully accurate as it simply lists cosmetics as they appear in items_game.txt, plus a few other quirks.\n\nit should be mostly correct though!")
+    list_sorting_info_button.config(state="normal")
+    disabled_list_sorting_info_button.config(state="normal")
+
+list_sorting_info_button = ttk.Button(search_frame, text="?", command=list_sorting_help, width=3)
+list_sorting_info_button.pack(side="left")
+
 # Disable Selected Button
 ttk.Button(search_frame, text="Disable Selected", command=lambda: disable_selected()).pack(side="left", padx=5)
 
@@ -766,10 +807,20 @@ DU_scrollbar.config(command=updates_listbox.yview)
 DU_button_frame = ttk.Frame(disable_update_win)
 DU_button_frame.pack(fill="x", padx=10, pady=5)
 
-ttk.Button(DU_button_frame, text="Disable", command=lambda: disable_selected_updates()).pack(pady=5, side="left")
-ttk.Button(DU_button_frame, text="Enable", command=lambda: enable_selected_updates()).pack(pady=5, side="right")
+DU_button_frame.columnconfigure(0, weight=1)
+DU_button_frame.columnconfigure(1, weight=0)
+DU_button_frame.columnconfigure(2, weight=1)
 
-# Import/Export list
+def update_modifier_help():
+    update_help_button.config(state="disabled")
+    messagebox.showinfo("Information", "Select the cosmetic update groups you want to modify, then press the corresponding button!\n\nOnly full/major updates are included, so promo items and cosmetics added in random patches will probably NOT be included in your selected updates, you may have to refine your selections further manually.")
+    disable_update_win.lift()
+    update_help_button.config(state="normal")
+
+ttk.Button(DU_button_frame, text="Disable", command=lambda: disable_selected_updates()).grid(row=0, column=0, sticky=tk.W)
+update_help_button = ttk.Button(DU_button_frame, text="?", command=update_modifier_help, width=5)
+update_help_button.grid(row=0, column=1)
+ttk.Button(DU_button_frame, text="Enable", command=lambda: enable_selected_updates()).grid(row=0, column=2, sticky=tk.E)
 
 # Disable All Button
 ttk.Button(search_frame, text="Disable All Cosmetics", command=disable_all_cosmetics).pack(side="right", padx=5)
@@ -795,6 +846,16 @@ search_frame_disabled.pack(fill="x", padx=10, pady=5)
 ttk.Label(search_frame_disabled, text="Search:").pack(side="left", padx=(0, 5))
 search_entry_disabled = ttk.Entry(search_frame_disabled, textvariable=search_var_disabled, width=30)
 search_entry_disabled.pack(side="left")
+
+# Drop-down box
+disabled_dropdown_selection = tk.StringVar()
+disabled_dropdown_selection.trace_add("write", disabled_dropdown_box_change)
+disabled_dropdown = ttk.Combobox(search_frame_disabled, values=["Alphabetical", "Date"], state="readonly", textvariable=disabled_dropdown_selection, width=12)
+disabled_dropdown.pack(side="left", padx=5)
+disabled_dropdown_selection.set("Alphabetical")
+
+disabled_list_sorting_info_button = ttk.Button(search_frame_disabled, text="?", command=list_sorting_help, width=3)
+disabled_list_sorting_info_button.pack(side="left")
 
 scrollbar2 = ttk.Scrollbar(frame_disabled, orient="vertical")
 scrollbar2.pack(side="right", fill="y")
