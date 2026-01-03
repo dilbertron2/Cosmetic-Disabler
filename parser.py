@@ -44,7 +44,6 @@
 # SOFTWARE.
 
 
-from idlelib.run import uninstall_recursionlimit_wrappers
 from pathlib import Path
 
 import re

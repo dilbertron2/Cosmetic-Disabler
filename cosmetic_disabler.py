@@ -51,6 +51,9 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# pyinstaller command lol (remember to provide the "Replacement Files" directory aswell as database.csv with every release)
+# pyinstaller --onefile --noconsole --icon "tf2_ico.ico" --add-data "16x16.png;." --add-data "32x32.png;." --add-data "tf2_ico.ico;." "cosmetic_disabler.py"
+
 
 import sys
 import ctypes
@@ -126,7 +129,8 @@ if sys.platform == "win32":  # Force custom app ID to ensure program icon usage
     app_id = u"TF2CosmeticDisabler.app"
     try:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
-    except Exception:
+    except Exception as e:
+        print(e)
         pass
 
 # Functions
