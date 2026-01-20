@@ -58,7 +58,7 @@ tf_classes = [
 cosmetic_keywords = [  # Detect cosmetics by prefab or slot
     "hat", "misc", "paintable", "base_hat", "base_misc",
     "cosmetic", "tournament_medal", "tf_wearable", "grenades",
-    "backpack", "beard", "zombie"
+    "backpack", "beard", "zombie", "mask"
 ]
 
 localisation_dict = None

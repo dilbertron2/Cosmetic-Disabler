@@ -402,8 +402,8 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                     if "hat" in bodygroups and "shoes" in bodygroups:
                         replacement_model_type = "shoes"
 
-                elif replacement_model_type == "headphones": # Enforce correct bodygroup for multi-class cosmetics that can be worn by scout
-                    if "hat" in bodygroups and "headphones" in bodygroups and tf_class != "scout":
+                elif replacement_model_type in ("headphones", "dogtags"): # Enforce correct bodygroup for multi-class cosmetics that can be worn by scout
+                    if "hat" in bodygroups and ("headphones" in bodygroups or "dogtags" in bodygroups) and tf_class != "scout":
                         replacement_model_type = "hat"
 
                     elif any(name in cosmetic.get("name", "").lower() for name in ("arkham cowl", "promo arkham cowl")):
@@ -436,6 +436,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                         paths_to_copy.append((target_file, mod_folder / f"{main}{ext}"))
 
                 else:
+                    print(f"REPLACEMENT FILE NOT FOUND: {target_file}")
                     if ext == ".vtx":
                         for suffix in ["dx80", "dx90", "sw"]:
                             empty_vtx_paths.append(mod_folder / f"{main}.{suffix}{ext}")
@@ -454,7 +455,7 @@ def create_vpk(): # Process disabled cosmetic filepaths and create VPK file
                                     (mod_folder / create_folder).mkdir(parents=True, exist_ok=True)
                                     shutil.copy(file, mod_folder / f"materials/models/player/{tf_class}/{filename}{ext}")
 
-    #print(f"paths to copy: {paths_to_copy}")
+    print(f"paths to copy: {paths_to_copy}")
 
     # Batch writing data to disk
     for folder in created_dirs:
